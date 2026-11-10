@@ -3,11 +3,10 @@
 import Link from "next/link";
 
 import {
-  ClipboardCheck, FileText, Inbox, LayoutDashboard, MessagesSquare,
-  ScrollText, Settings2, Users,
+  Bot, FileText, LayoutDashboard, ListChecks, Radar, Settings2, Sparkles, UserRound,
 } from "lucide-react";
 
-import { SigapMark } from "@/components/sigap-mark";
+import { LearisMark } from "@/components/learis-mark";
 import { NavMain, type NavItem } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { ConnectionStatus, type Connection } from "@/components/connection-status";
@@ -15,64 +14,29 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail,
 } from "@/components/ui/sidebar";
 
-const WORK: NavItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Decision queue", href: "/", icon: Inbox },
-  { title: "Conversation", href: "/chat", icon: MessagesSquare },
+// In the order a student walks through it: evidence in, gap out, plan, profile.
+const JOURNEY: NavItem[] = [
+  { title: "Overview", href: "/", icon: LayoutDashboard },
+  { title: "Evidence", href: "/evidence", icon: FileText },
+  { title: "Skills", href: "/skills", icon: Sparkles },
+  { title: "Gap map", href: "/gap", icon: Radar },
+  { title: "Roadmap & plan", href: "/plan", icon: ListChecks },
+  { title: "Profile", href: "/profile", icon: UserRound },
 ];
 
-// One entry per agent who publishes work of their own. The roster page sits
-// at the top of the list rather than beside it, so there is a single way in.
-const AGENTS: NavItem[] = [
-  {
-    title: "Agent team",
-    href: "/agents",
-    icon: Users,
-    children: [
-      { title: "All agents", href: "/agents" },
-      { title: "Impact", href: "/agents/impact", owner: "Elsa" },
-      { title: "Demand", href: "/agents/demand", owner: "Dara" },
-      { title: "Stock", href: "/agents/inventory", owner: "Iris" },
-      { title: "Sourcing", href: "/agents/sourcing", owner: "Clint" },
-      { title: "Procurement", href: "/agents/procurement", owner: "Prita" },
-      { title: "Logistics", href: "/agents/logistics", owner: "Milo" },
-      { title: "Rules", href: "/agents/compliance", owner: "Kira" },
-      { title: "Costing", href: "/agents/simulation", owner: "Tara" },
-      { title: "Execution", href: "/agents/execution", owner: "Bram" },
-      { title: "Latent risk", href: "/agents/exposure", owner: "Vega" },
-    ],
-  },
-];
-
-const RECORDS: NavItem[] = [
-  { title: "Data audit", href: "/audit", icon: ClipboardCheck },
-  { title: "Log", href: "/log", icon: ScrollText },
-  { title: "Reports", href: "/reports", icon: FileText },
+const TEAM: NavItem[] = [
+  { title: "Agent team", href: "/agents", icon: Bot },
 ];
 
 const SETTINGS: NavItem[] = [
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings2,
-    children: [
-      { title: "SAP connection", href: "/sap" },
-      { title: "MCP", href: "/mcp" },
-      { title: "Skills", href: "/skills" },
-      { title: "Upload data", href: "/uploads" },
-      { title: "Contacts", href: "/contacts" },
-      { title: "Models", href: "/models" },
-      { title: "Schedule", href: "/schedule" },
-    ],
-  },
+  { title: "AI & privacy", href: "/settings", icon: Settings2 },
 ];
 
 export function AppSidebar({
-  user, connection, mayChangeMode = false, ...props
+  user, connection, ...props
 }: {
   user?: { name: string; role: string; email: string };
   connection?: Connection;
-  mayChangeMode?: boolean;
 } & React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -81,18 +45,17 @@ export function AppSidebar({
           href="/"
           className="flex items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
-          <SigapMark className="size-6 shrink-0" />
+          <LearisMark className="size-6 shrink-0" />
           <span className="truncate text-sm font-semibold tracking-[-0.03em] group-data-[collapsible=icon]:hidden">
-            SIGAP
+            LEARIS
           </span>
         </Link>
-        <ConnectionStatus c={connection} mayChange={mayChangeMode} />
+        <ConnectionStatus c={connection} />
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={WORK} />
-        <NavMain label="Agents" items={AGENTS} />
-        <NavMain label="Records" items={RECORDS} />
+        <NavMain label="Your journey" items={JOURNEY} />
+        <NavMain label="Agents" items={TEAM} />
         <NavMain items={SETTINGS} />
       </SidebarContent>
 
