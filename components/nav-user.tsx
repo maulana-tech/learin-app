@@ -13,11 +13,10 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 
-const AUTHORITY: Record<string, string> = {
-  planner: "read only",
-  buyer: "up to Rp 500 million",
-  procurement_lead: "up to Rp 10 billion",
-  admin: "up to Rp 10 billion",
+const ROLE: Record<string, string> = {
+  student: "Student",
+  mentor: "Mentor",
+  admin: "Admin",
 };
 
 export function NavUser({
@@ -60,7 +59,7 @@ export function NavUser({
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{AUTHORITY[user.role] ?? user.role}</span>
+                <span className="truncate text-xs">{ROLE[user.role] ?? user.role}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -75,9 +74,6 @@ export function NavUser({
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs font-mono">{user.email}</span>
-                <span className="mt-1 truncate text-xs text-muted-foreground">
-                  Authority: {AUTHORITY[user.role] ?? user.role}
-                </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
