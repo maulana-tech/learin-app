@@ -1,0 +1,4 @@
+# The agent service runs on the Python standard library alone: the HTTP server,
+# SQLite, and the OpenAI-compatible AI client (core/ai.py) are all stdlib.
+# Nothing to install. This file stays so deploy scripts that run
+# `pip install -r requirements.txt` keep working.

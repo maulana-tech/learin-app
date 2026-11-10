@@ -1,0 +1,748 @@
+{
+ "_note": "Curated by the LEARIS team for the hackathon demo. Aliases are the different words syllabi, READMEs and job posts use for the same skill; course names are weaker evidence than the topic itself. Hours are rough estimates for a student learning the skill to a junior level.",
+ "categories": [
+  "Foundations",
+  "Frontend",
+  "Backend",
+  "Data",
+  "Analysis",
+  "Practice"
+ ],
+ "skills": [
+  {
+   "id": "programming-basics",
+   "name": "Programming fundamentals",
+   "category": "Foundations",
+   "hours": 30,
+   "aliases": [
+    "variables",
+    "loops",
+    "conditionals",
+    "functions",
+    "control flow",
+    "dasar pemrograman",
+    "algoritma dan pemrograman",
+    "procedural programming"
+   ],
+   "courses": [
+    "algoritma dan pemrograman",
+    "dasar pemrograman",
+    "introduction to programming",
+    "pengantar pemrograman",
+    "programming fundamentals",
+    "cs50"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "data-structures",
+   "name": "Data structures",
+   "category": "Foundations",
+   "hours": 25,
+   "aliases": [
+    "data structures",
+    "struktur data",
+    "linked list",
+    "hash table",
+    "binary tree",
+    "graph traversal"
+   ],
+   "courses": [
+    "struktur data",
+    "data structures"
+   ],
+   "prereqs": [
+    "programming-basics"
+   ]
+  },
+  {
+   "id": "algorithms",
+   "name": "Algorithms and complexity",
+   "category": "Foundations",
+   "hours": 25,
+   "aliases": [
+    "big o",
+    "time complexity",
+    "sorting algorithm",
+    "binary search",
+    "dynamic programming",
+    "kompleksitas algoritma"
+   ],
+   "courses": [
+    "analisis algoritma",
+    "design and analysis of algorithms",
+    "strategi algoritma"
+   ],
+   "prereqs": [
+    "data-structures"
+   ]
+  },
+  {
+   "id": "oop",
+   "name": "Object-oriented programming",
+   "category": "Foundations",
+   "hours": 20,
+   "aliases": [
+    "object-oriented",
+    "object oriented",
+    "oop",
+    "pbo",
+    "inheritance",
+    "polymorphism",
+    "encapsulation",
+    "class diagram"
+   ],
+   "courses": [
+    "pemrograman berorientasi objek",
+    "object oriented programming",
+    "pbo"
+   ],
+   "prereqs": [
+    "programming-basics"
+   ]
+  },
+  {
+   "id": "python",
+   "name": "Python",
+   "category": "Foundations",
+   "hours": 25,
+   "aliases": [
+    "python",
+    "python3",
+    "jupyter",
+    "pip install"
+   ],
+   "courses": [],
+   "prereqs": [
+    "programming-basics"
+   ]
+  },
+  {
+   "id": "linux-cli",
+   "name": "Command line and Linux",
+   "category": "Practice",
+   "hours": 10,
+   "aliases": [
+    "command line",
+    "bash",
+    "shell script",
+    "linux",
+    "ubuntu"
+   ],
+   "courses": [
+    "sistem operasi",
+    "operating systems"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "git",
+   "name": "Git and version control",
+   "category": "Practice",
+   "hours": 8,
+   "aliases": [
+    "git",
+    "github",
+    "gitlab",
+    "version control",
+    "pull request",
+    "branching"
+   ],
+   "courses": [],
+   "prereqs": [
+    "linux-cli"
+   ]
+  },
+  {
+   "id": "testing",
+   "name": "Automated testing",
+   "category": "Practice",
+   "hours": 15,
+   "aliases": [
+    "unit test",
+    "unit testing",
+    "jest",
+    "vitest",
+    "pytest",
+    "playwright",
+    "cypress",
+    "test coverage",
+    "pengujian perangkat lunak",
+    "tdd"
+   ],
+   "courses": [
+    "pengujian perangkat lunak",
+    "software testing"
+   ],
+   "prereqs": [
+    "programming-basics"
+   ]
+  },
+  {
+   "id": "agile",
+   "name": "Agile teamwork",
+   "category": "Practice",
+   "hours": 6,
+   "aliases": [
+    "agile",
+    "scrum",
+    "kanban",
+    "user story"
+   ],
+   "courses": [
+    "rekayasa perangkat lunak",
+    "software engineering",
+    "manajemen proyek perangkat lunak"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "deployment",
+   "name": "Deployment and hosting",
+   "category": "Practice",
+   "hours": 10,
+   "aliases": [
+    "deployment",
+    "deployed",
+    "vercel",
+    "netlify",
+    "heroku",
+    "docker",
+    "ci/cd",
+    "github actions",
+    "hosting"
+   ],
+   "courses": [
+    "komputasi awan",
+    "cloud computing",
+    "devops"
+   ],
+   "prereqs": [
+    "git"
+   ]
+  },
+  {
+   "id": "html",
+   "name": "HTML",
+   "category": "Frontend",
+   "hours": 8,
+   "aliases": [
+    "html",
+    "html5",
+    "semantic html"
+   ],
+   "courses": [
+    "pemrograman web",
+    "web programming",
+    "desain web",
+    "web design"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "css",
+   "name": "CSS",
+   "category": "Frontend",
+   "hours": 15,
+   "aliases": [
+    "css",
+    "css3",
+    "flexbox",
+    "css grid",
+    "sass",
+    "scss",
+    "stylesheet"
+   ],
+   "courses": [
+    "pemrograman web",
+    "web programming",
+    "desain web",
+    "web design"
+   ],
+   "prereqs": [
+    "html"
+   ]
+  },
+  {
+   "id": "responsive-design",
+   "name": "Responsive design",
+   "category": "Frontend",
+   "hours": 8,
+   "aliases": [
+    "mobile-first",
+    "media query",
+    "media queries"
+   ],
+   "courses": [
+    "desain web",
+    "web design"
+   ],
+   "prereqs": [
+    "css"
+   ]
+  },
+  {
+   "id": "tailwind",
+   "name": "Tailwind CSS",
+   "category": "Frontend",
+   "hours": 6,
+   "aliases": [
+    "tailwind",
+    "tailwindcss"
+   ],
+   "courses": [],
+   "prereqs": [
+    "css"
+   ]
+  },
+  {
+   "id": "javascript",
+   "name": "JavaScript",
+   "category": "Frontend",
+   "hours": 35,
+   "aliases": [
+    "javascript",
+    "es6",
+    "ecmascript",
+    "async/await",
+    "fetch api"
+   ],
+   "courses": [
+    "pemrograman web",
+    "web programming"
+   ],
+   "prereqs": [
+    "programming-basics",
+    "html"
+   ]
+  },
+  {
+   "id": "dom",
+   "name": "DOM and browser APIs",
+   "category": "Frontend",
+   "hours": 10,
+   "aliases": [
+    "dom",
+    "document object model",
+    "event listener",
+    "localstorage",
+    "browser api"
+   ],
+   "courses": [],
+   "prereqs": [
+    "javascript"
+   ]
+  },
+  {
+   "id": "typescript",
+   "name": "TypeScript",
+   "category": "Frontend",
+   "hours": 15,
+   "aliases": [
+    "typescript",
+    "type annotations",
+    "tsconfig"
+   ],
+   "courses": [],
+   "prereqs": [
+    "javascript"
+   ]
+  },
+  {
+   "id": "react",
+   "name": "React",
+   "category": "Frontend",
+   "hours": 30,
+   "aliases": [
+    "react",
+    "reactjs",
+    "react.js",
+    "jsx",
+    "usestate",
+    "useeffect",
+    "react hooks"
+   ],
+   "courses": [],
+   "prereqs": [
+    "javascript",
+    "dom"
+   ]
+  },
+  {
+   "id": "nextjs",
+   "name": "Next.js",
+   "category": "Frontend",
+   "hours": 15,
+   "aliases": [
+    "next.js",
+    "nextjs",
+    "app router",
+    "server components"
+   ],
+   "courses": [],
+   "prereqs": [
+    "react"
+   ]
+  },
+  {
+   "id": "accessibility",
+   "name": "Web accessibility",
+   "category": "Frontend",
+   "hours": 8,
+   "aliases": [
+    "accessibility",
+    "a11y",
+    "aria",
+    "wcag",
+    "screen reader"
+   ],
+   "courses": [
+    "interaksi manusia dan komputer",
+    "human computer interaction"
+   ],
+   "prereqs": [
+    "html"
+   ]
+  },
+  {
+   "id": "http",
+   "name": "HTTP and the web",
+   "category": "Backend",
+   "hours": 8,
+   "aliases": [
+    "http",
+    "https",
+    "status code",
+    "request and response",
+    "client-server",
+    "jaringan komputer"
+   ],
+   "courses": [
+    "jaringan komputer",
+    "computer networks",
+    "pemrograman web"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "rest-api",
+   "name": "REST APIs",
+   "category": "Backend",
+   "hours": 15,
+   "aliases": [
+    "rest api",
+    "restful",
+    "api endpoint",
+    "crud api",
+    "json api",
+    "postman",
+    "openapi",
+    "swagger"
+   ],
+   "courses": [],
+   "prereqs": [
+    "http",
+    "json"
+   ]
+  },
+  {
+   "id": "json",
+   "name": "JSON",
+   "category": "Backend",
+   "hours": 3,
+   "aliases": [
+    "json"
+   ],
+   "courses": [],
+   "prereqs": []
+  },
+  {
+   "id": "nodejs",
+   "name": "Node.js",
+   "category": "Backend",
+   "hours": 20,
+   "aliases": [
+    "node.js",
+    "nodejs",
+    "npm",
+    "express",
+    "expressjs",
+    "nestjs"
+   ],
+   "courses": [],
+   "prereqs": [
+    "javascript"
+   ]
+  },
+  {
+   "id": "auth",
+   "name": "Authentication and web security",
+   "category": "Backend",
+   "hours": 12,
+   "aliases": [
+    "authentication",
+    "authorization",
+    "jwt",
+    "oauth",
+    "password hashing",
+    "owasp",
+    "xss",
+    "csrf",
+    "sql injection",
+    "keamanan informasi"
+   ],
+   "courses": [
+    "keamanan informasi",
+    "keamanan jaringan",
+    "information security"
+   ],
+   "prereqs": [
+    "rest-api"
+   ]
+  },
+  {
+   "id": "sql",
+   "name": "SQL",
+   "category": "Data",
+   "hours": 20,
+   "aliases": [
+    "sql",
+    "mysql",
+    "postgresql",
+    "postgres",
+    "sqlite",
+    "select query",
+    "group by",
+    "basis data"
+   ],
+   "courses": [
+    "basis data",
+    "sistem basis data",
+    "database systems",
+    "databases"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "database-design",
+   "name": "Database design",
+   "category": "Data",
+   "hours": 12,
+   "aliases": [
+    "erd",
+    "entity relationship",
+    "normalization",
+    "normalisasi",
+    "database schema",
+    "relational model",
+    "primary key",
+    "foreign key"
+   ],
+   "courses": [
+    "basis data",
+    "sistem basis data",
+    "perancangan basis data",
+    "database design"
+   ],
+   "prereqs": [
+    "sql"
+   ]
+  },
+  {
+   "id": "nosql",
+   "name": "NoSQL databases",
+   "category": "Data",
+   "hours": 8,
+   "aliases": [
+    "nosql",
+    "mongodb",
+    "firebase",
+    "firestore",
+    "redis"
+   ],
+   "courses": [],
+   "prereqs": []
+  },
+  {
+   "id": "excel",
+   "name": "Spreadsheets",
+   "category": "Analysis",
+   "hours": 10,
+   "aliases": [
+    "excel",
+    "google sheets",
+    "spreadsheet",
+    "pivot table",
+    "vlookup",
+    "xlookup"
+   ],
+   "courses": [
+    "aplikasi komputer",
+    "computer applications"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "statistics",
+   "name": "Statistics",
+   "category": "Analysis",
+   "hours": 30,
+   "aliases": [
+    "statistics",
+    "statistika",
+    "statistik",
+    "hypothesis test",
+    "regression",
+    "regresi",
+    "probability",
+    "probabilitas",
+    "standard deviation",
+    "anova",
+    "t-test"
+   ],
+   "courses": [
+    "statistika",
+    "statistik",
+    "probabilitas dan statistika",
+    "statistics",
+    "metode statistika"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "pandas",
+   "name": "pandas and data wrangling",
+   "category": "Analysis",
+   "hours": 20,
+   "aliases": [
+    "pandas",
+    "dataframe",
+    "numpy",
+    "data cleaning",
+    "data wrangling",
+    "pembersihan data"
+   ],
+   "courses": [],
+   "prereqs": [
+    "python"
+   ]
+  },
+  {
+   "id": "data-viz",
+   "name": "Data visualisation",
+   "category": "Analysis",
+   "hours": 15,
+   "aliases": [
+    "data visualization",
+    "data visualisation",
+    "visualisasi data",
+    "matplotlib",
+    "seaborn",
+    "plotly"
+   ],
+   "courses": [
+    "visualisasi data",
+    "data visualization"
+   ],
+   "prereqs": []
+  },
+  {
+   "id": "bi-tools",
+   "name": "BI dashboards",
+   "category": "Analysis",
+   "hours": 15,
+   "aliases": [
+    "power bi",
+    "tableau",
+    "looker studio",
+    "google data studio",
+    "metabase"
+   ],
+   "courses": [
+    "business intelligence",
+    "intelijen bisnis"
+   ],
+   "prereqs": [
+    "data-viz"
+   ]
+  },
+  {
+   "id": "data-storytelling",
+   "name": "Data storytelling",
+   "category": "Analysis",
+   "hours": 8,
+   "aliases": [
+    "data storytelling",
+    "stakeholder presentation",
+    "executive summary",
+    "business recommendation"
+   ],
+   "courses": [],
+   "prereqs": [
+    "data-viz"
+   ]
+  },
+  {
+   "id": "machine-learning-basics",
+   "name": "Machine learning basics",
+   "category": "Analysis",
+   "hours": 30,
+   "aliases": [
+    "machine learning",
+    "scikit-learn",
+    "sklearn",
+    "classification",
+    "clustering",
+    "pembelajaran mesin",
+    "linear regression"
+   ],
+   "courses": [
+    "pembelajaran mesin",
+    "machine learning",
+    "kecerdasan buatan",
+    "artificial intelligence",
+    "data mining",
+    "penambangan data"
+   ],
+   "prereqs": [
+    "python",
+    "statistics"
+   ]
+  }
+ ],
+ "watchlist": [
+  "Kubernetes",
+  "AWS",
+  "Azure",
+  "Google Cloud",
+  "GCP",
+  "Java",
+  "C++",
+  "C#",
+  "Golang",
+  "Rust",
+  "PHP",
+  "Laravel",
+  "Django",
+  "Flask",
+  "FastAPI",
+  "Spring Boot",
+  "Vue",
+  "Angular",
+  "Svelte",
+  "GraphQL",
+  "Kafka",
+  "Terraform",
+  "Kotlin",
+  "Swift",
+  "Flutter",
+  "React Native",
+  "TensorFlow",
+  "PyTorch",
+  "Spark",
+  "Hadoop",
+  "Snowflake",
+  "Figma"
+ ],
+ "_watchlist_note": "Technologies outside the taxonomy that a profile draft may not claim unless a quote in the student's evidence names them."
+}

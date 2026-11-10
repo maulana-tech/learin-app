@@ -1,0 +1,13 @@
+TRANSKRIP AKADEMIK (SEMENTARA)
+Program Studi Teknik Informatika
+
+Kode     Mata Kuliah                         SKS  Nilai
+IF1210   Dasar Pemrograman                     3    A
+IF2110   Algoritma dan Struktur Data           4    AB
+IF2210   Pemrograman Berorientasi Objek        3    B
+IF2240   Basis Data                            3    A
+IF2230   Sistem Operasi                        3    B
+MA2181   Probabilitas dan Statistika           3    BC
+IF3110   Pemrograman Web                       3    A
+IF3150   Rekayasa Perangkat Lunak              3    AB
+IF3130   Jaringan Komputer                     3    B

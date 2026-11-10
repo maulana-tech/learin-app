@@ -1,0 +1,27 @@
+{
+  "_note": "Illustrative job posts written by the LEARIS team for the demo, modelled on the wording real posts use. They are NOT real listings and name no real company. Each is read with the same matcher as a student's documents, which is the point: different words, same skill.",
+  "posts": [
+    {"id": "wd-id-1", "role": "junior-web-developer", "region": "id", "title": "Junior Frontend Developer",
+     "text": "Menguasai HTML5, CSS3 dan JavaScript (ES6). Pengalaman dengan React.js dan Tailwind. Terbiasa menggunakan Git dan GitHub. Memahami REST API dan JSON. Nilai plus: TypeScript, Next.js."},
+    {"id": "wd-id-2", "role": "junior-web-developer", "region": "id", "title": "Fullstack Web Developer (Fresh Graduate)",
+     "text": "Familiar with JavaScript, React and Node.js / Express. Able to design a database schema and write SQL queries (MySQL or PostgreSQL). Understands HTTP, authentication with JWT, and version control with Git. Experience deploying to Vercel or Docker is a plus."},
+    {"id": "wd-id-3", "role": "junior-web-developer", "region": "id", "title": "Web Developer Intern",
+     "text": "Mampu membuat tampilan responsive (mobile-first) dengan HTML dan CSS (flexbox, grid). Paham JavaScript dan DOM. Mengerti Git. Bisa bekerja dengan metode Agile/Scrum."},
+    {"id": "wd-sg-1", "role": "junior-web-developer", "region": "sg", "title": "Graduate Software Engineer, Web",
+     "text": "Strong fundamentals in JavaScript and TypeScript. React with hooks. Unit testing with Jest or Vitest. Consumes RESTful APIs. Pull request based workflow on GitHub. Awareness of accessibility (WCAG) and web performance."},
+    {"id": "wd-sg-2", "role": "junior-web-developer", "region": "sg", "title": "Associate Frontend Engineer",
+     "text": "React, Next.js and TypeScript. Semantic HTML, CSS and responsive design. CI/CD with GitHub Actions. Works in two-week sprints with Scrum."},
+    {"id": "wd-remote-1", "role": "junior-web-developer", "region": "remote", "title": "Junior Full-Stack Developer (Remote)",
+     "text": "JavaScript/TypeScript across the stack: React on the front, Node.js on the back. PostgreSQL and REST API design. Git, code review, automated tests with Playwright. Comfortable on the command line and deploying with Docker."},
+    {"id": "wd-remote-2", "role": "junior-web-developer", "region": "remote", "title": "Junior Web Developer",
+     "text": "HTML, CSS, JavaScript, React. Understands HTTP status codes and the request and response cycle. SQL basics. Git. Writes clear pull request descriptions in English."},
+    {"id": "da-id-1", "role": "data-analyst", "region": "id", "title": "Junior Data Analyst",
+     "text": "Menguasai SQL (PostgreSQL/MySQL) dan Excel (pivot table, VLOOKUP). Paham statistika dasar. Mampu membuat dashboard di Looker Studio atau Power BI. Nilai plus: Python (pandas)."},
+    {"id": "da-id-2", "role": "data-analyst", "region": "id", "title": "Data Analyst Fresh Graduate",
+     "text": "Mampu melakukan pembersihan data dengan Python dan pandas, visualisasi data dengan matplotlib atau seaborn, serta menyampaikan insight sebagai business recommendation kepada stakeholder."},
+    {"id": "da-sg-1", "role": "data-analyst", "region": "sg", "title": "Graduate Data Analyst",
+     "text": "Advanced SQL, Python with pandas and numpy, statistics including hypothesis tests and regression. Builds Tableau or Power BI dashboards. Strong data storytelling to stakeholders."},
+    {"id": "da-remote-1", "role": "data-analyst", "region": "remote", "title": "Junior Data Analyst (Remote)",
+     "text": "SQL, Google Sheets and Excel, data visualization, Python. Exposure to machine learning with scikit-learn is a plus. Version control with Git."}
+  ]
+}

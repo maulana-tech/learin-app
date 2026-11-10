@@ -1,0 +1,15 @@
+SILABUS MATA KULIAH
+Pemrograman Web (IF3110) — 3 SKS — Semester 5
+
+Deskripsi
+Mata kuliah ini membahas pembangunan aplikasi web dari sisi klien dan server.
+
+Capaian pembelajaran
+1. Menyusun halaman dengan HTML5 semantik dan CSS (flexbox, CSS grid).
+2. Membuat tampilan responsive dengan media query dan pendekatan mobile-first.
+3. Memprogram interaksi dengan JavaScript ES6: async/await, fetch API, manipulasi DOM dan event listener.
+4. Memahami protokol HTTP, status code, serta konsep client-server.
+5. Membangun REST API sederhana yang mengembalikan JSON dan menyimpannya di MySQL.
+
+Tugas besar
+Aplikasi CRUD berkelompok (3 orang) menggunakan Git untuk kolaborasi dan pull request.
