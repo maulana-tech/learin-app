@@ -4,7 +4,6 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { AgentBadge } from "@/components/agent-card";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
@@ -17,7 +16,7 @@ export type NavItem = {
   title: string;
   href: string;
   icon: React.ElementType;
-  children?: { title: string; href: string; owner?: string }[];
+  children?: { title: string; href: string }[];
 };
 
 const isActive = (pathname: string, href: string) =>
@@ -70,13 +69,7 @@ export function NavMain({ label, items }: { label?: string; items: NavItem[] }) 
                       <SidebarMenuSubItem key={c.href}>
                         <SidebarMenuSubButton asChild isActive={isActive(pathname, c.href)}>
                           <Link href={c.href}>
-                            {c.owner && <AgentBadge nickname={c.owner} size="xs" />}
                             <span>{c.title}</span>
-                            {c.owner && (
-                              <span className="text-muted-foreground ml-auto text-[10px]">
-                                {c.owner}
-                              </span>
-                            )}
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
