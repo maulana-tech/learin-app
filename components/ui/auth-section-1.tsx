@@ -3,7 +3,7 @@
 import { GrainGradient } from "@paper-design/shaders-react";
 import { useState } from "react";
 
-import { SigapMark } from "@/components/sigap-mark";
+import { LearisMark } from "@/components/learis-mark";
 import type { FormEvent, ReactNode } from "react";
 
 const termsText = (
@@ -138,18 +138,18 @@ export default function AuthSectionOne({
 
           <div className="relative z-10 flex h-full w-full flex-col justify-between">
             <h2 className="max-w-[620px] pt-0 text-5xl font-medium tracking-[-0.05em] text-white sm:text-6xl lg:pt-16 lg:text-[64px] lg:leading-[0.98] xl:text-[70px]">
-              Think fast,
+              You know more
               <br />
-              Build faster
+              than your resume says
             </h2>
 
             <a
               href="#"
               className="mb-0 inline-flex h-12 max-w-full items-center gap-3 rounded-[10px] border border-white/25 px-5 text-base font-medium text-white/85 backdrop-blur-sm transition-colors hover:border-white/45 hover:text-white xl:mb-32 xl:px-6 xl:text-2xl"
             >
-              <SigapMark className="size-5 shrink-0 xl:size-7" />
+              <LearisMark className="size-5 shrink-0 xl:size-7" />
               <span className="truncate whitespace-nowrap">
-                SIGAP | Supply Chain Agentic AI
+                LEARIS | Skill Gap Radar
               </span>
             </a>
           </div>
