@@ -9,31 +9,17 @@ import {
 import { cn } from "@/lib/utils";
 
 const LABELS: Record<string, string> = {
-  dashboard: "Dashboard",
-  chat: "Conversation",
-  data: "Supply data",
-  demand: "Demand",
-  inventory: "Stock",
-  sourcing: "Supply options",
-  logistics: "Logistics",
-  simulation: "Costing",
-  execution: "Execution",
-  agents: "Agent team",
-  audit: "Data audit",
-  log: "Log",
-  reports: "Reports",
-  sap: "SAP connection",
-  mcp: "MCP",
+  evidence: "Evidence",
   skills: "Skills",
-  uploads: "Upload data",
-  contacts: "Contacts",
-  models: "Models",
-  schedule: "Schedule",
-  disruptions: "Handling",
+  gap: "Gap map",
+  plan: "Roadmap & plan",
+  profile: "Profile",
+  agents: "Agent team",
+  settings: "AI & privacy",
 };
 
 /** Segments that are not pages of their own. Shown, but not clickable. */
-const NOT_A_PAGE = new Set(["data", "disruptions"]);
+const NOT_A_PAGE = new Set<string>([]);
 
 export function Breadcrumbs() {
   const pathname = usePathname();
@@ -45,9 +31,9 @@ export function Breadcrumbs() {
       <BreadcrumbList className="flex-nowrap">
         <BreadcrumbItem className={cn(deep && "hidden md:inline-flex")}>
           {parts.length === 0 ? (
-            <BreadcrumbPage>Decision queue</BreadcrumbPage>
+            <BreadcrumbPage>Overview</BreadcrumbPage>
           ) : (
-            <BreadcrumbLink href="/">Queue</BreadcrumbLink>
+            <BreadcrumbLink href="/">Overview</BreadcrumbLink>
           )}
         </BreadcrumbItem>
 
