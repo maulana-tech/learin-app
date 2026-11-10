@@ -1,98 +1,125 @@
-import { api, idr, type Board, type RunRow } from "@/app/lib";
-import { AutoRefresh } from "@/components/auto-refresh";
-import { DisruptionCard } from "@/components/disruption-card";
-import { StatusBadge } from "@/components/status-badge";
-import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Circle } from "lucide-react";
+import Link from "next/link";
+
+import {
+  apiResult, api, type Doc, type Gap, type Impact, type Output, type Reminder, type Run, type Student,
+} from "@/app/lib";
+import { AgentPanel } from "@/components/agent-panel";
+import { CheckIn } from "@/components/checkin";
+import { AnalyseButton } from "@/components/analyse-button";
+import { Page, ServiceDown, Stat } from "@/components/page-bits";
+import { RadarChart } from "@/components/radar-chart";
+import { PageHeader } from "@/components/shell";
 
 export const dynamic = "force-dynamic";
 
-export default async function Queue() {
-  const [data, health] = await Promise.all([
-    api<{ runs: RunRow[]; board?: Board }>("runs"),
-    api<{ env: string; sap_ready: boolean; model_ready: boolean;
-          data_mode?: "live" | "demo"; sap_key_set?: boolean }>("health"),
+export default async function Overview() {
+  const st = await apiResult<Student>("student");
+  if (!st.data) return <ServiceDown error={st.error} />;
+  const [docs, gap, impact, runs, reminders] = await Promise.all([
+    api<{ documents: Doc[] }>("documents"),
+    api<Output<Gap>>("gap"),
+    api<Impact>("impact"),
+    api<{ runs: Run[] }>("runs"),
+    api<{ reminders: Reminder[] }>("reminders"),
   ]);
+  const student = st.data;
+  const g = gap?.payload ?? null;
+  const last = runs?.runs?.[0] ? await api<Run>(`runs/${runs.runs[0].id}`) : null;
+  const n = docs?.documents.length ?? 0;
+  const pending = docs?.documents.filter((d) => !d.analysed_at).length ?? 0;
+  const before = new Map((impact?.baseline_role === g?.role.id ? impact?.radar_before ?? [] : [])
+    .map((r) => [r.category, r.score]));
 
-  if (!data) {
-    return (
-      <main className="w-full px-6 py-16">
-        <h1 className="text-xl font-semibold">The agent service is not responding</h1>
-        <pre className="mt-4 rounded-lg border border-border bg-card p-4 font-mono text-sm">
-          cd sigap/agent{"\n"}python3 api.py
-        </pre>
-      </main>
-    );
-  }
-
-  const runs = data.runs;
-  // The board comes back already sorted by what is owed, so the top of the
-  // screen is the thing most owed, not the thing most recent.
-  const board = data.board;
+  const steps = [
+    { done: n > 0, label: "Add evidence", note: n ? `${n} document(s)` : "syllabus, transcript, README or repo", href: "/evidence" },
+    { done: !!student.target_role, label: "Choose a target role", note: g?.role.name ?? "Junior Web Developer or Data Analyst", href: "/gap" },
+    { done: !!g && pending === 0, label: "Run the agents", note: pending ? `${pending} document(s) not analysed yet` : g ? "up to date" : "evidence → gap → plan → profile", href: "#run" },
+    { done: !!g, label: "Read your gap map", note: g ? `${g.match}% match` : "", href: "/gap" },
+    { done: !!impact?.planned_hours, label: "Follow the 4-week plan", note: impact?.planned_hours ? `${impact.planned_hours} h planned` : "", href: "/plan" },
+    { done: !!g, label: "Update your profile", note: "headline, About, CV bullets", href: "/profile" },
+  ];
 
   return (
-    <main className="w-full px-4 py-4 md:px-6 md:py-8">
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4 md:gap-4 md:pb-5">
-        <div>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight md:mt-2 md:text-2xl">Supply disruptions</h1>
-          {/* One line that says whether to open anything. It may only read
-              "nothing needs a person" when nothing waits, nothing is held,
-              nothing failed and nothing owes an outcome — a board that says
-              all clear while four handlings sit held is believed once. */}
-          <p className={`mt-1 text-xs md:text-sm ${
-            board?.clear ? "text-emerald-700 dark:text-emerald-400"
-                         : board?.needs_a_person ? "text-amber-700 dark:text-amber-400"
-                         : "text-muted-foreground"}`}>
-            {board?.line ?? `${runs.length} handlings`}
-          </p>
-          {board && board.needs_a_person > 0 && (
-            <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
-              {runs.length} handlings · {idr(board.value_idr)} waiting on a person
-            </p>
-          )}
-        </div>
-        {health && (
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <AutoRefresh active={runs.some((r) => r.status === "running")} />
-            <Badge variant="outline" className="font-mono text-[10px]">{health.env}</Badge>
-            {/* "not set" would be a lie in demo mode: the key is set, the
-                tools are simply told not to call it. */}
-            <StatusBadge status={health.sap_ready ? "done" : "held"}>
-              SAP{" "}
-              {health.sap_ready
-                ? "connected"
-                : health.data_mode === "demo"
-                  ? "off in demo"
-                  : health.sap_key_set
-                    ? "not answering"
-                    : "not set"}
-            </StatusBadge>
-            <StatusBadge status={health.model_ready ? "done" : "held"}>
-              model {health.model_ready ? "ready" : "not set"}
-            </StatusBadge>
-          </div>
-        )}
-      </header>
+    <Page>
+      <PageHeader
+        title="Skill Gap Radar"
+        lead="Your degree already taught you more than your resume shows. Add what you have studied and built; the agents prove which skills it shows, measure the gap to your target role, and plan four weeks that fit your real week."
+      />
 
-      {runs.length === 0 ? (
-        <div className="mt-10 rounded-lg border border-dashed border-border p-8">
-          <p className="text-sm text-muted-foreground">No events yet. Send one:</p>
-          <pre className="mt-3 overflow-x-auto rounded-lg border border-border bg-card p-4 font-mono text-xs">
-{`curl -X POST localhost:8787/events \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H 'content-type: application/json' \\
-  -d '{"kind":"port_closure","title":"Ningbo closed 6 days",
-       "trigger":"maritime advisory","payload":{"port":"CNNGB"}}'`}
-          </pre>
-        </div>
-      ) : (
-        <ul className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {runs.map((r) => (
-            <li key={r.id} className="flex">
-              <DisruptionCard r={r} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+      {reminders?.reminders.map((r) => (
+        <div key={r.id} className="mt-6"><CheckIn reminder={r} /></div>
+      ))}
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <section className="min-w-0 space-y-6">
+          <ol className="divide-y rounded-lg border">
+            {steps.map((s, i) => (
+              <li key={s.label}>
+                <Link href={s.href} className="hover:bg-muted/50 flex items-start gap-3 p-3 transition-colors">
+                  {s.done ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                    : <Circle className="text-muted-foreground mt-0.5 size-4 shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{i + 1}. {s.label}</p>
+                    {s.note && <p className="text-muted-foreground text-xs">{s.note}</p>}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ol>
+
+          <div id="run" className="rounded-lg border p-4">
+            <h2 className="text-sm font-semibold">Agent team</h2>
+            <p className="text-muted-foreground mt-1 mb-3 text-xs leading-relaxed">
+              The Orchestrator reads where you are and runs Skill Evidence, Roadmap, Planner and
+              Profile in order. Everything works without a model; connecting your own AI lets it
+              read between the lines, and every claim it makes is checked against your documents.
+            </p>
+            <AnalyseButton />
+            {last?.steps && last.steps.length > 0 && (
+              <details className="mt-4">
+                <summary className="text-muted-foreground cursor-pointer text-xs">Last run: what each agent did</summary>
+                <div className="mt-3"><AgentPanel steps={last.steps} /></div>
+              </details>
+            )}
+          </div>
+        </section>
+
+        <section className="min-w-0 space-y-6">
+          {g ? (
+            <div className="rounded-lg border p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-sm font-semibold">{g.role.name}</h2>
+                <p className="font-mono text-3xl font-semibold tabular-nums">{g.match}%</p>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                match · {g.counts.mastered} mastered · {g.counts.partial} partial · {g.counts.missing} missing
+              </p>
+              <RadarChart className="mx-auto mt-2 w-full max-w-sm"
+                axes={g.radar.map((r) => ({ label: r.category, value: r.score,
+                  baseline: before.has(r.category) ? before.get(r.category) : undefined }))} />
+              {before.size > 0 && (
+                <p className="text-muted-foreground text-center text-[11px]">dashed: your first analysis</p>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed p-6 text-sm">
+              <p className="font-medium">Your radar appears here</p>
+              <p className="text-muted-foreground mt-1">Add evidence, choose a role, then run the agents.</p>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <Stat label="Skills with evidence" value={impact?.skills_with_evidence ?? 0}
+              note="each with the quote that proves it" />
+            <Stat label="Hidden skills found" value={impact?.hidden_skills ?? 0}
+              note="proven, but not on your profile yet" />
+            <Stat label="Match, first → now"
+              value={impact?.match_before != null ? `${impact.match_before}% → ${impact.match_now}%` : "-"} />
+            <Stat label="Planned, next 4 weeks" value={impact?.planned_hours != null ? `${impact.planned_hours} h` : "-"}
+              note="never more than your free hours" />
+          </div>
+        </section>
+      </div>
+    </Page>
   );
 }
