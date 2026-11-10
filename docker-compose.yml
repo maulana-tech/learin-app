@@ -2,7 +2,7 @@ services:
   # 1. Database Service (PostgreSQL)
   database:
     image: postgres:16-alpine
-    container_name: sigap-database
+    container_name: learis-database
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-sigap}
@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - sigap_network
+      - learis_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sigap} -d ${POSTGRES_DB:-sigap}"]
       interval: 5s
@@ -20,44 +20,44 @@ services:
 
   # 2. Agent Backend Service (Python API)
   agents:
-    image: ${IMAGE_AGENTS:-sigap-agents:local}
+    image: ${IMAGE_AGENTS:-learis-agents:local}
     build:
-      context: ./sigap/agent
+      context: ./learis/agent
       dockerfile: Dockerfile
-    container_name: sigap-agents
+    container_name: learis-agents
     restart: always
     environment:
-      - SIGAP_HOST=0.0.0.0
+      - LEARIS_HOST=0.0.0.0
       - PORT=8787
-      - SIGAP_ENV=${SIGAP_ENV:-production}
+      - LEARIS_ENV=${LEARIS_ENV:-production}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-sigap}@database:5432/${POSTGRES_DB:-sigap}
-      - SIGAP_DB=/app/data/sigap.db
+      - LEARIS_DB=/app/data/sigap.db
     env_file:
-      - ./sigap/agent/.env
+      - ./learis/agent/.env
     volumes:
       - agent_data:/app/data
     networks:
-      - sigap_network
+      - learis_network
     depends_on:
       database:
         condition: service_healthy
 
   # 3. Web Frontend Service (Next.js Standalone)
-  sigap:
-    image: ${IMAGE_WEB:-sigap-web:local}
+  learis:
+    image: ${IMAGE_WEB:-learis-web:local}
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sigap-web
+    container_name: learis-web
     restart: always
     ports:
       - "127.0.0.1:3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - SIGAP_API=http://agents:8787
+      - LEARIS_API=http://agents:8787
     networks:
-      - sigap_network
+      - learis_network
     depends_on:
       - agents
 
@@ -68,6 +68,6 @@ volumes:
     driver: local
 
 networks:
-  sigap_network:
+  learis_network:
     driver: bridge
 
