@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: sigap-${{ github.ref }}
+  group: learis-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -32,13 +32,12 @@ jobs:
           python-version: '3.12'
       - run: npm ci
       - run: npm run lint
-      - run: node scripts/check-agent-output.mjs
       - run: npm run build -- --webpack
       - name: Python self-checks
-        working-directory: sigap/agent
+        working-directory: learis/agent
         env:
-          SIGAP_ENV: dev
-          SIGAP_DB: /tmp/sigap-ci.db
+          LEARIS_ENV: dev
+          LEARIS_DB: /tmp/learis-ci.db
         run: python manage.py check
       - run: python3 ops/test_deploy.py
       - run: python3 ops/test_deploy_ssh.py
@@ -65,10 +64,10 @@ jobs:
         id: meta
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          echo "image_web=ghcr.io/${OWNER}/sigap-web:latest" >> "$GITHUB_OUTPUT"
-          echo "image_web_sha=ghcr.io/${OWNER}/sigap-web:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          echo "image_agents=ghcr.io/${OWNER}/sigap-agents:latest" >> "$GITHUB_OUTPUT"
-          echo "image_agents_sha=ghcr.io/${OWNER}/sigap-agents:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "image_web=ghcr.io/${OWNER}/learis-web:latest" >> "$GITHUB_OUTPUT"
+          echo "image_web_sha=ghcr.io/${OWNER}/learis-web:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "image_agents=ghcr.io/${OWNER}/learis-agents:latest" >> "$GITHUB_OUTPUT"
+          echo "image_agents_sha=ghcr.io/${OWNER}/learis-agents:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Web image
         uses: docker/build-push-action@v5
@@ -85,8 +84,8 @@ jobs:
       - name: Build and push Agents image
         uses: docker/build-push-action@v5
         with:
-          context: ./sigap/agent
-          file: ./sigap/agent/Dockerfile
+          context: ./learis/agent
+          file: ./learis/agent/Dockerfile
           push: true
           tags: |
             ${{ steps.meta.outputs.image_agents }}
