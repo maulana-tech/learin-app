@@ -1,156 +1,125 @@
-import { ArrowDown, ArrowLeftRight, Database } from "lucide-react";
 import Link from "next/link";
 
-import { api, type Agent, type AgentSummary } from "@/app/lib";
-import { AgentBadge, AgentCard } from "@/components/agent-card";
+import { apiResult, api, when, type JobsStatus, type Run, type TeamAgent } from "@/app/lib";
+import { AgentPanel } from "@/components/agent-panel";
+import { AnalyseButton } from "@/components/analyse-button";
+import { Page, ServiceDown } from "@/components/page-bits";
+import { PageHeader } from "@/components/shell";
 import { StatusBadge } from "@/components/status-badge";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { McpConnect } from "./McpConnect";
 
 export const dynamic = "force-dynamic";
 
-export default async function AgentTeam() {
-  const d = await api<{ agents: Agent[]; summary: AgentSummary }>("agents");
+const every = (s: number) => (s >= 3600 ? `every ${s / 3600} h` : `every ${s / 60} min`);
 
-  if (!d) {
-    return (
-      <main className="w-full px-6 py-16">
-        <h1 className="text-xl font-semibold">The agent service is not responding</h1>
-        <pre className="bg-muted mt-4 rounded-lg border p-4 font-mono text-sm">
-          cd sigap/agent{"\n"}python3 api.py
-        </pre>
-      </main>
-    );
-  }
-
-  const { agents, summary } = d;
-  const lead = agents.find((a) => a.lead)!;
-  const responders = agents.filter((a) => !a.lead && a.code !== "exposure");
-  const preventers = agents.filter((a) => a.code === "exposure");
-  const pct = Math.round((summary.tools_installed / summary.tools_total) * 100);
+export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ run?: string }> }) {
+  const team = await apiResult<{ team: TeamAgent[]; planned: TeamAgent[] }>("agents");
+  if (!team.data) return <ServiceDown error={team.error} />;
+  const [runsOut, jobs] = await Promise.all([api<{ runs: Run[] }>("runs"), api<JobsStatus>("jobs")]);
+  const runs = runsOut?.runs ?? [];
+  const pick = (await searchParams).run ?? runs[0]?.id;
+  const run = pick ? await api<Run>(`runs/${pick}`) : null;
 
   return (
-    <main className="w-full px-4 py-4 md:px-6 md:py-8">
-      <header className="border-b pb-5">
-        <h1 className="mt-1 text-xl font-semibold tracking-tight md:mt-2 md:text-2xl">
-          One lead, ten specialists
-        </h1>
-        <p className="text-muted-foreground mt-1 max-w-3xl text-sm leading-relaxed">
-          Arya calls whichever specialist the last finding warrants. The order is decided
-          in the moment, not written in advance. If moving stock between plants solves it,
-          Clint never gets called at all.
-        </p>
+    <Page>
+      <PageHeader title="Agent team"
+        lead="One Orchestrator and four agents, each with its own tools. With a model that can call tools, each agent picks its own and every call shows below; tools refuse anything the evidence does not back. Without one, the agents follow fixed steps on the same engines." />
 
-        <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-3">
-          <div className="group/bar min-w-40">
-            <p className="text-muted-foreground text-xs">Tools installed</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
-              {summary.tools_installed}
-              <span className="text-muted-foreground text-sm">/{summary.tools_total}</span>
-            </p>
-            <Progress value={pct} className="mt-1.5 h-1" />
-            <p className="text-muted-foreground mt-1 h-4 font-mono text-[11px] opacity-0 transition-opacity group-hover/bar:opacity-100">
-              {pct}% ready, {summary.tools_total - summary.tools_installed} still to write
-            </p>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section className="min-w-0 space-y-3">
+          <ul className="space-y-2">
+            {team.data.team.map((a) => (
+              <li key={a.code} className="rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{a.name}</span>
+                  <Badge variant="outline" className="font-mono text-[10px]">{a.priority}</Badge>
+                  {a.tools.length > 0 && <span className="text-muted-foreground ml-auto text-[11px]">{a.tools.length} tools</span>}
+                </div>
+                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{a.brief}</p>
+                {a.tools.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="text-muted-foreground cursor-pointer text-[11px]">Tools</summary>
+                    <ul className="mt-1.5 space-y-1">
+                      {a.tools.map((t) => (
+                        <li key={t.name} className="text-[11px] leading-relaxed">
+                          <span className="font-mono">{t.name}</span>
+                          {t.writes && <span className="text-muted-foreground"> · saves</span>}
+                          <span className="text-muted-foreground block">{t.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          <h2 className="pt-2 text-sm font-semibold">Next</h2>
+          <ul className="space-y-2">
+            {team.data.planned.map((a) => (
+              <li key={a.code} className="text-muted-foreground rounded-lg border border-dashed p-3 text-xs">
+                <span className="text-foreground font-medium">{a.name}</span>{" "}
+                <Badge variant="outline" className="font-mono text-[10px]">{a.priority}</Badge>
+                <p className="mt-1 leading-relaxed">{a.brief}</p>
+              </li>
+            ))}
+          </ul>
+
+          {jobs && (
+            <div className="rounded-lg border p-4">
+              <h2 className="text-sm font-semibold">Workers and scheduled jobs</h2>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {jobs.workers.workers} worker(s) · {jobs.workers.busy} busy · {jobs.workers.queued} queued ·{" "}
+                {jobs.workers.done} run(s) done since start · scheduler {jobs.scheduler_on ? "on" : "off"}
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {jobs.jobs.map((j) => (
+                  <li key={j.name} className="text-xs">
+                    <span className="font-mono">{j.name}</span>{" "}
+                    <span className="text-muted-foreground">{every(j.every_seconds)} · {j.what}</span>
+                    {j.last_result && (
+                      <span className={`block text-[11px] ${j.last_ok === false ? "text-destructive" : "text-muted-foreground"}`}>
+                        last: {j.last_result}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="rounded-lg border p-4">
+            <h2 className="mb-2 text-sm font-semibold">Use LEARIS from your own agent (MCP)</h2>
+            <McpConnect />
           </div>
-          <div className="group/bar min-w-40">
-            <p className="text-muted-foreground text-xs">Prompts written</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
-              {summary.prompts_written}
-              <span className="text-muted-foreground text-sm">/{summary.agent_count}</span>
-            </p>
-            <Progress
-              value={Math.round((summary.prompts_written / summary.agent_count) * 100)}
-              className="mt-1.5 h-1"
-            />
-            <p className="text-muted-foreground mt-1 h-4 font-mono text-[11px] opacity-0 transition-opacity group-hover/bar:opacity-100">
-              {summary.agent_count - summary.prompts_written} agents cannot be run yet
-            </p>
-          </div>
-          <StatusBadge status={summary.model_ready ? "done" : "held"}>
-            {summary.model_ready ? "Bedrock ready" : "AWS_REGION not set"}
-          </StatusBadge>
-          <StatusBadge status={summary.sap_ready ? "done" : "held"}>
-            {summary.sap_ready
-              ? "SAP connected"
-              : summary.data_mode === "demo"
-                ? "SAP off in demo"
-                : summary.sap_key_set
-                  ? "SAP not answering"
-                  : "SAP_API_KEY not set"}
-          </StatusBadge>
-        </div>
-      </header>
+        </section>
 
-      {/* ---------------- the lead ---------------- */}
-      <section className="mt-8">
-        <div className="bg-muted/40 flex flex-wrap items-center gap-4 rounded-lg border p-5">
-          <AgentBadge nickname={lead.nickname} large />
-          <div className="min-w-60 flex-1">
-            <h2 className="font-semibold">
-              {lead.nickname}
-              <span className="text-muted-foreground ml-2 text-sm font-normal">{lead.title}</span>
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{lead.brief}</p>
-          </div>
-          <Link
-            href={`/agents/${lead.code}`}
-            className="text-muted-foreground hover:text-foreground font-mono text-xs"
-          >
-            open →
-          </Link>
-        </div>
-
-        <p className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
-          <span className="flex items-center gap-1.5">
-            <ArrowDown className="size-3" /> calls on what was found
-          </span>
-          <span className="flex items-center gap-1.5">
-            <ArrowLeftRight className="size-3" /> specialists hand off to each other
-          </span>
-        </p>
-      </section>
-
-      {/* ---------------- responding specialists ---------------- */}
-      <section className="mt-3">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {responders.map((a) => (
-            <AgentCard key={a.code} a={a} />
-          ))}
-        </div>
-      </section>
-
-      {/* ---------------- the shared board ---------------- */}
-      <section className="mt-3">
-        <div className="text-muted-foreground flex flex-wrap items-start gap-3 rounded-lg border border-dashed p-4">
-          <Database className="mt-0.5 size-4 shrink-0" />
-          <div className="min-w-60 flex-1">
-            <p className="text-sm font-medium">
-              Shared board
-            </p>
-            <p className="mt-1 text-xs leading-relaxed">
-              Every specialist reads and writes here, and each finding carries its origin
-              label. This is what lets Iris hand a quality hold straight to Elsa. The
-              stockout date gets recomputed without going back through Arya.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- prevent mode ---------------- */}
-      <section className="mt-8">
-        <h2 className="text-sm font-medium">
-          Prevent mode · not built yet
-        </h2>
-        <p className="text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed">
-          Works without waiting for a disruption: hunts risk that has not happened,
-          on a weekly schedule.
-        </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {preventers.map((a) => (
-            <AgentCard key={a.code} a={a} />
-          ))}
-        </div>
-      </section>
-    </main>
+        <section className="min-w-0 space-y-4">
+          <div className="rounded-lg border p-4"><AnalyseButton /></div>
+          {runs.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {runs.slice(0, 8).map((r) => (
+                <Link key={r.id} href={`/agents?run=${r.id}`}
+                  className={`rounded-md border px-2 py-1 text-[11px] ${r.id === pick ? "bg-muted font-medium" : "text-muted-foreground"}`}>
+                  {when(r.started_at)}
+                </Link>
+              ))}
+            </div>
+          )}
+          {run && (
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                <StatusBadge status={run.status === "done" ? "done" : run.status === "failed" ? "failed" : "running"}>
+                  {run.status}
+                </StatusBadge>
+                <span className="text-muted-foreground">{run.ai ?? "rules only"} · {when(run.started_at)}</span>
+              </div>
+              <AgentPanel steps={run.steps ?? []} />
+            </div>
+          )}
+        </section>
+      </div>
+    </Page>
   );
 }
