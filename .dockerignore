@@ -2,8 +2,7 @@ node_modules
 .next
 .git
 .github
-sigap
-materi
+learis
 ops
 data
 .env*.local
