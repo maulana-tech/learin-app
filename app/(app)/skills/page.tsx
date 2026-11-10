@@ -1,119 +1,68 @@
-import { apiResult, type SkillsPayload } from "@/app/lib";
+import { apiResult, type Skill } from "@/app/lib";
+import { EmptyState, Page, ServiceDown } from "@/components/page-bits";
 import { PageHeader } from "@/components/shell";
-import { StatusBadge } from "@/components/status-badge";
-
-import { Remove, Write } from "./Write";
+import { Confidence, KIND_LABEL, MethodTag, StatusPill, statusOf } from "@/components/skill-bits";
+import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
 export default async function SkillsPage() {
-  const { data, error } = await apiResult<SkillsPayload>("skills");
+  const r = await apiResult<{ skills: Skill[]; hidden: number }>("skills");
+  if (!r.data) return <ServiceDown error={r.error} />;
+  const { skills, hidden } = r.data;
+  const byCat = new Map<string, Skill[]>();
+  for (const s of skills) byCat.set(s.category, [...(byCat.get(s.category) ?? []), s]);
 
   return (
-    <main className="w-full px-4 py-4 md:px-6 md:py-8">
-      <PageHeader
-        title="Skills"
-        lead={
-          <>
-            A tool is one call. A skill is a named procedure that composes several of them in
-            an order somebody decided once, so the order is not re-derived — differently — on
-            every handling. Each one names the agents that may run it and the tools it uses,
-            and both are checked against the registry: a skill naming a tool that does not
-            exist fails the build rather than a handling. The five we wrote are code; the
-            ones below them are yours, checked the same way at the moment you save them.
-          </>
-        }
-      />
+    <Page>
+      <PageHeader title="Skills"
+        lead="Every skill here comes with the words that prove it and how sure we are. A course name is a weak hint; a project that uses the skill is strong. Nothing is listed without a source."
+        aside={skills.length > 0 && (
+          <span className="text-muted-foreground text-sm">
+            {skills.length} skill(s) · <span className="text-foreground font-medium">{hidden} hidden</span> (not on your profile)
+          </span>
+        )} />
 
-      {!data ? (
-        <p className="text-muted-foreground mt-8 rounded-lg border border-dashed p-6 text-sm">
-          {error ?? "The agent service did not answer."}
-        </p>
+      {skills.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState title="No skills proven yet" body="Add evidence and run the agents. Each skill the Skill Evidence Agent finds will show here with its quote."
+            href="/evidence" cta="Add evidence" />
+        </div>
       ) : (
-        <>
-          <div className="mt-8 space-y-4">
-            {data.skills.map((s) => (
-              <section key={s.name} className="rounded-lg border">
-                <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
-                  <p className="text-sm font-medium">{s.title}</p>
-                  <span className="text-muted-foreground font-mono text-[10px]">{s.name}</span>
-                  {s.external && (
-                    <StatusBadge status="done">reachable over MCP and A2A</StatusBadge>
-                  )}
-                  {!s.builtin && <StatusBadge status="pending">written here</StatusBadge>}
-                  <span className="text-muted-foreground ml-auto font-mono text-[10px]">
-                    {s.usage.calls} run{s.usage.calls === 1 ? "" : "s"} in {data.days} days
-                    {s.usage.not_found > 0 && ` · ${s.usage.not_found} named but missing`}
-                  </span>
-                  {!s.builtin && data.may_change && <Remove name={s.name} />}
-                </div>
-
-                <div className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                  <div>
-                    <p className="text-muted-foreground text-xs leading-relaxed">
-                      {s.description}
-                    </p>
-                    <ol className="mt-3 space-y-1.5">
-                      {s.steps.map((step, i) => (
-                        <li key={i} className="flex gap-3 text-xs leading-relaxed">
-                          <span className="text-muted-foreground font-mono">
-                            {String(i + 1).padStart(2, "0")}
-                          </span>
-                          <span>{step}</span>
+        <div className="mt-6 space-y-8">
+          {[...byCat.entries()].map(([cat, list]) => (
+            <section key={cat}>
+              <h2 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">{cat}</h2>
+              <ul className="mt-2 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                {list.map((s) => (
+                  <li key={s.skill_id} className="min-w-0 rounded-lg border p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">{s.name}</span>
+                      <StatusPill status={statusOf(s.confidence)} />
+                      {s.hidden && <Badge variant="outline" className="text-[10px]">hidden skill</Badge>}
+                      {s.verified && <Badge variant="outline" className="text-[10px]">verified</Badge>}
+                    </div>
+                    <Confidence value={s.confidence} className="mt-2" />
+                    <ul className="mt-3 space-y-2">
+                      {s.evidence.slice(0, 3).map((e) => (
+                        <li key={e.id} className="border-l-2 pl-2.5">
+                          <p className="text-xs leading-relaxed">&ldquo;{e.quote}&rdquo;</p>
+                          <p className="text-muted-foreground mt-0.5 text-[11px]">
+                            {e.document_title} · {KIND_LABEL[e.document_kind] ?? e.document_kind} · {Math.round(e.confidence * 100)}% · <MethodTag method={e.method} />
+                          </p>
                         </li>
                       ))}
-                    </ol>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
-                        Who may run it
-                      </p>
-                      <p className="mt-1 font-mono text-xs">
-                        {s.agents.length ? s.agents.join(", ") : "any agent"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
-                        Tools it composes
-                      </p>
-                      <ul className="mt-1 space-y-0.5">
-                        {s.tools.map((t) => (
-                          <li key={t} className="font-mono text-[11px]">{t}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    {Object.keys(s.usage.by_agent).length > 0 && (
-                      <div>
-                        <p className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
-                          Run by
-                        </p>
-                        <ul className="mt-1 space-y-0.5">
-                          {Object.entries(s.usage.by_agent).map(([a, n]) => (
-                            <li key={a} className="font-mono text-[11px]">
-                              {a} · {n}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            ))}
-          </div>
-
-          <Write data={data} />
-
-          <p className="text-muted-foreground mt-6 max-w-3xl text-xs leading-relaxed">
-            Every invocation is counted, including the ones that name a skill nobody wrote.
-            That last figure is the useful one: a model reaching for a procedure that does not
-            exist is a gap in this catalogue, and it is only visible because those calls are
-            recorded rather than dropped.
-          </p>
-        </>
+                      {s.evidence.length > 3 && (
+                        <li className="text-muted-foreground text-[11px]">+{s.evidence.length - 3} more source(s)</li>
+                      )}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
-    </main>
+    </Page>
   );
 }
