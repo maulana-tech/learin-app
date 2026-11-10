@@ -14,11 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SIGAP Decision queue",
+  title: "LEARIS Skill Gap Radar",
   description:
-    "Autonomous supply-disruption response. Investigates the impact, assembles the "
-    + "options, strikes out the ones that break the rules, then executes into SAP "
-    + "once approved.",
+    "Your degree already taught you more than your resume shows. LEARIS proves it, "
+    + "finds the real gap to your target role, and closes it with a plan that fits your week.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
