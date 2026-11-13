@@ -1,125 +1,55 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { apiResult, api, when, type JobsStatus, type Run, type TeamAgent } from "@/app/lib";
-import { AgentPanel } from "@/components/agent-panel";
-import { AnalyseButton } from "@/components/analyse-button";
-import { Page, ServiceDown } from "@/components/page-bits";
-import { PageHeader } from "@/components/shell";
-import { StatusBadge } from "@/components/status-badge";
-import { Badge } from "@/components/ui/badge";
-import { McpConnect } from "./McpConnect";
+import { apiResult, currentWorkspace, type RosterAgent } from "@/app/lib";
+import { Chip } from "@/components/dort";
+import { ServiceDown } from "@/components/page-bits";
+import { PageHeader, Section } from "@/components/shell";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-const every = (s: number) => (s >= 3600 ? `every ${s / 3600} h` : `every ${s / 60} min`);
+function Card({ a }: { a: RosterAgent }) {
+  const href = a.pack ? "/skill-gap" : a.custom ? `/agents/${a.id}` : undefined;
+  const body = (
+    <>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <p className="text-[14px] font-medium">{a.name}</p>
+        {a.shared && <Chip tone="info">shared</Chip>}
+        {a.model && <Chip>{a.model}</Chip>}
+      </div>
+      <p className="text-muted-foreground mt-1 text-[12.5px] leading-snug">{a.description}</p>
+      {a.tools.length > 0 && (
+        <p className="text-muted-foreground mt-2 font-mono text-[11px] leading-relaxed break-words">{a.tools.join(" · ")}</p>
+      )}
+    </>
+  );
+  const cls = "bg-inner-grad block rounded-lg border p-4";
+  return href ? <Link href={href} className={`${cls} hover:border-[rgba(6,71,179,0.35)]`}>{body}</Link> : <div className={cls}>{body}</div>;
+}
 
-export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ run?: string }> }) {
-  const team = await apiResult<{ team: TeamAgent[]; planned: TeamAgent[] }>("agents");
-  if (!team.data) return <ServiceDown error={team.error} />;
-  const [runsOut, jobs] = await Promise.all([api<{ runs: Run[] }>("runs"), api<JobsStatus>("jobs")]);
-  const runs = runsOut?.runs ?? [];
-  const pick = (await searchParams).run ?? runs[0]?.id;
-  const run = pick ? await api<Run>(`runs/${pick}`) : null;
+export default async function AgentsPage() {
+  const ws = await currentWorkspace();
+  const r = ws ? await apiResult<{ agents: RosterAgent[] }>(`workspace-agents?ws=${ws.id}`) : null;
+  if (!ws || !r?.data) return <ServiceDown error={r?.error} />;
+  const all = r.data.agents;
+  const builtin = all.filter((a) => a.builtin), packs = all.filter((a) => a.pack), mine = all.filter((a) => a.custom);
 
   return (
-    <Page>
-      <PageHeader title="Agent team"
-        lead="One Orchestrator and four agents, each with its own tools. With a model that can call tools, each agent picks its own and every call shows below; tools refuse anything the evidence does not back. Without one, the agents follow fixed steps on the same engines." />
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section className="min-w-0 space-y-3">
-          <ul className="space-y-2">
-            {team.data.team.map((a) => (
-              <li key={a.code} className="rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{a.name}</span>
-                  <Badge variant="outline" className="font-mono text-[10px]">{a.priority}</Badge>
-                  {a.tools.length > 0 && <span className="text-muted-foreground ml-auto text-[11px]">{a.tools.length} tools</span>}
-                </div>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{a.brief}</p>
-                {a.tools.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="text-muted-foreground cursor-pointer text-[11px]">Tools</summary>
-                    <ul className="mt-1.5 space-y-1">
-                      {a.tools.map((t) => (
-                        <li key={t.name} className="text-[11px] leading-relaxed">
-                          <span className="font-mono">{t.name}</span>
-                          {t.writes && <span className="text-muted-foreground"> · saves</span>}
-                          <span className="text-muted-foreground block">{t.description}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <h2 className="pt-2 text-sm font-semibold">Next</h2>
-          <ul className="space-y-2">
-            {team.data.planned.map((a) => (
-              <li key={a.code} className="text-muted-foreground rounded-lg border border-dashed p-3 text-xs">
-                <span className="text-foreground font-medium">{a.name}</span>{" "}
-                <Badge variant="outline" className="font-mono text-[10px]">{a.priority}</Badge>
-                <p className="mt-1 leading-relaxed">{a.brief}</p>
-              </li>
-            ))}
-          </ul>
-
-          {jobs && (
-            <div className="rounded-lg border p-4">
-              <h2 className="text-sm font-semibold">Workers and scheduled jobs</h2>
-              <p className="text-muted-foreground mt-1 text-xs">
-                {jobs.workers.workers} worker(s) · {jobs.workers.busy} busy · {jobs.workers.queued} queued ·{" "}
-                {jobs.workers.done} run(s) done since start · scheduler {jobs.scheduler_on ? "on" : "off"}
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {jobs.jobs.map((j) => (
-                  <li key={j.name} className="text-xs">
-                    <span className="font-mono">{j.name}</span>{" "}
-                    <span className="text-muted-foreground">{every(j.every_seconds)} · {j.what}</span>
-                    {j.last_result && (
-                      <span className={`block text-[11px] ${j.last_ok === false ? "text-destructive" : "text-muted-foreground"}`}>
-                        last: {j.last_result}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="rounded-lg border p-4">
-            <h2 className="mb-2 text-sm font-semibold">Use LEARIS from your own agent (MCP)</h2>
-            <McpConnect />
-          </div>
-        </section>
-
-        <section className="min-w-0 space-y-4">
-          <div className="rounded-lg border p-4"><AnalyseButton /></div>
-          {runs.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {runs.slice(0, 8).map((r) => (
-                <Link key={r.id} href={`/agents?run=${r.id}`}
-                  className={`rounded-md border px-2 py-1 text-[11px] ${r.id === pick ? "bg-muted font-medium" : "text-muted-foreground"}`}>
-                  {when(r.started_at)}
-                </Link>
-              ))}
-            </div>
-          )}
-          {run && (
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                <StatusBadge status={run.status === "done" ? "done" : run.status === "failed" ? "failed" : "running"}>
-                  {run.status}
-                </StatusBadge>
-                <span className="text-muted-foreground">{run.ai ?? "rules only"} · {when(run.started_at)}</span>
-              </div>
-              <AgentPanel steps={run.steps ?? []} />
-            </div>
-          )}
-        </section>
-      </div>
-    </Page>
+    <main className="w-full px-4 py-6 md:px-8 md:py-8">
+      <PageHeader title="Agents"
+        lead={`The team the Orchestrator delegates to in ${ws.name}. Build your own: give it instructions, choose its tools and, if you like, its own model. Everyone in the workspace can use it.`}
+        aside={<Button asChild><Link href="/agents/new"><Plus className="size-4" /> New agent</Link></Button>} />
+      <Section title="Built in" note="Always available. Each sees only its own tools; tools refuse a page that cites what a file does not say.">
+        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">{builtin.map((a) => <Card key={a.id} a={a} />)}</div>
+      </Section>
+      <Section title="Yours" note={mine.length ? undefined : "No custom agents yet. Build one, or install one from the gallery."}
+        action={<Link href="/gallery" className="text-brand text-[12.5px]">Browse the gallery →</Link>}>
+        {mine.length > 0 && <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{mine.map((a) => <Card key={a.id} a={a} />)}</div>}
+      </Section>
+      <Section title="Packs" note="Ready-made teams for one job.">
+        <div className="grid gap-3 md:grid-cols-2">{packs.map((a) => <Card key={a.id} a={a} />)}</div>
+      </Section>
+    </main>
   );
 }
