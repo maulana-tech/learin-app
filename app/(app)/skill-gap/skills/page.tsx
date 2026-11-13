@@ -1,5 +1,5 @@
 import { apiResult, type Skill } from "@/app/lib";
-import { EmptyState, Page, ServiceDown } from "@/components/page-bits";
+import { EmptyState, Page, ServiceDown, Stat } from "@/components/page-bits";
 import { PageHeader } from "@/components/shell";
 import { Confidence, KIND_LABEL, MethodTag, StatusPill, statusOf } from "@/components/skill-bits";
 import { Chip } from "@/components/dort";
@@ -30,12 +30,18 @@ export default async function SkillsPage() {
         </div>
       ) : (
         <div className="mt-6 space-y-8">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Stat label="Skills proven" value={skills.length} />
+            <Stat label="Hidden skills" value={hidden} note="not on your profile yet" />
+            <Stat label="Strong (60%+)" value={skills.filter((s) => s.confidence >= 0.6).length} />
+            <Stat label="Categories" value={byCat.size} />
+          </div>
           {[...byCat.entries()].map(([cat, list]) => (
             <section key={cat}>
-              <h2 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{cat}</h2>
+              <h2 className="flex items-center gap-2 text-[13px] font-medium">{cat}<span className="text-muted-foreground font-mono text-[11px] font-normal">{list.length}</span><span className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" /></h2>
               <ul className="mt-2 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {list.map((s) => (
-                  <li key={s.skill_id} className="bg-inner-grad min-w-0 rounded-lg border p-4">
+                  <li key={s.skill_id} className="bg-card-grad min-w-0 rounded-xl border p-4 shadow-soft transition-shadow hover:shadow-float">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[14px] font-medium">{s.name}</span>
                       <StatusPill status={statusOf(s.confidence)} />
@@ -45,7 +51,7 @@ export default async function SkillsPage() {
                     <Confidence value={s.confidence} className="mt-2" />
                     <ul className="mt-3 space-y-2">
                       {s.evidence.slice(0, 3).map((e) => (
-                        <li key={e.id} className="border-l-2 pl-2.5">
+                        <li key={e.id} className="bg-inner-grad rounded-md border-l-2 border-l-[#111] px-2.5 py-1.5">
                           <p className="text-xs leading-relaxed">&ldquo;{e.quote}&rdquo;</p>
                           <p className="text-muted-foreground mt-0.5 text-[11px]">
                             {e.document_title} · {KIND_LABEL[e.document_kind] ?? e.document_kind} · {Math.round(e.confidence * 100)}% · <MethodTag method={e.method} />
