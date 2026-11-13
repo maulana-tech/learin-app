@@ -1,125 +1,76 @@
-import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 
-import {
-  apiResult, api, type Doc, type Gap, type Impact, type Output, type Reminder, type Run, type Student,
-} from "@/app/lib";
-import { AgentPanel } from "@/components/agent-panel";
-import { CheckIn } from "@/components/checkin";
-import { AnalyseButton } from "@/components/analyse-button";
-import { Page, ServiceDown, Stat } from "@/components/page-bits";
-import { RadarChart } from "@/components/radar-chart";
-import { PageHeader } from "@/components/shell";
+import { api, currentWorkspace, when, type AskRun, type Collection, type RosterAgent } from "@/app/lib";
+import { ArtifactLinks, Ask } from "@/components/ask";
+import { Chip } from "@/components/dort";
+import { Markdown } from "@/components/markdown";
+import { ServiceDown } from "@/components/page-bits";
+import type { Artifact } from "@/app/lib";
 
 export const dynamic = "force-dynamic";
 
-export default async function Overview() {
-  const st = await apiResult<Student>("student");
-  if (!st.data) return <ServiceDown error={st.error} />;
-  const [docs, gap, impact, runs, reminders] = await Promise.all([
-    api<{ documents: Doc[] }>("documents"),
-    api<Output<Gap>>("gap"),
-    api<Impact>("impact"),
-    api<{ runs: Run[] }>("runs"),
-    api<{ reminders: Reminder[] }>("reminders"),
+export default async function Assistant() {
+  const ws = await currentWorkspace();
+  if (!ws) return <ServiceDown />;
+  const [runs, roster, files] = await Promise.all([
+    api<{ runs: AskRun[] }>(`runs?kind=ask&ws=${ws.id}`),
+    api<{ agents: RosterAgent[] }>(`workspace-agents?ws=${ws.id}`),
+    api<{ collections: Collection[] }>(`collections?ws=${ws.id}`),
   ]);
-  const student = st.data;
-  const g = gap?.payload ?? null;
-  const last = runs?.runs?.[0] ? await api<Run>(`runs/${runs.runs[0].id}`) : null;
-  const n = docs?.documents.length ?? 0;
-  const pending = docs?.documents.filter((d) => !d.analysed_at).length ?? 0;
-  const before = new Map((impact?.baseline_role === g?.role.id ? impact?.radar_before ?? [] : [])
-    .map((r) => [r.category, r.score]));
-
-  const steps = [
-    { done: n > 0, label: "Add evidence", note: n ? `${n} document(s)` : "syllabus, transcript, README or repo", href: "/evidence" },
-    { done: !!student.target_role, label: "Choose a target role", note: g?.role.name ?? "Junior Web Developer or Data Analyst", href: "/gap" },
-    { done: !!g && pending === 0, label: "Run the agents", note: pending ? `${pending} document(s) not analysed yet` : g ? "up to date" : "evidence → gap → plan → profile", href: "#run" },
-    { done: !!g, label: "Read your gap map", note: g ? `${g.match}% match` : "", href: "/gap" },
-    { done: !!impact?.planned_hours, label: "Follow the 4-week plan", note: impact?.planned_hours ? `${impact.planned_hours} h planned` : "", href: "/plan" },
-    { done: !!g, label: "Update your profile", note: "headline, About, CV bullets", href: "/profile" },
-  ];
+  const past = (runs?.runs ?? []).filter((r) => r.answer).slice(0, 6);
+  const agents = roster?.agents ?? [];
 
   return (
-    <Page>
-      <PageHeader
-        title="Skill Gap Radar"
-        lead="Your degree already taught you more than your resume shows. Add what you have studied and built; the agents prove which skills it shows, measure the gap to your target role, and plan four weeks that fit your real week."
-      />
+    <main className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10">
+      <div className="mb-6">
+        <h1 className="text-2xl font-medium tracking-tight md:text-[28px]">What should your agents do?</h1>
+        <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+          The Orchestrator splits your request and delegates it, in parallel where it can, to agents that read
+          your files, write pages where every claim cites a source, plan tasks for people and agents, and check the result.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <Chip tone={ws.kind === "group" ? "info" : "neutral"}>{ws.name}</Chip>
+          {(files?.collections ?? []).map((c) => <Chip key={c.name}>{c.name} · {c.files}</Chip>)}
+          {!files?.collections?.length && <Link href="/files" className="text-brand text-[12.5px]">Add files first →</Link>}
+        </div>
+      </div>
 
-      {reminders?.reminders.map((r) => (
-        <div key={r.id} className="mt-6"><CheckIn reminder={r} /></div>
-      ))}
+      <Ask workspaceName={ws.name} />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <section className="min-w-0 space-y-6">
-          <ol className="divide-y rounded-lg border">
-            {steps.map((s, i) => (
-              <li key={s.label}>
-                <Link href={s.href} className="hover:bg-muted/50 flex items-start gap-3 p-3 transition-colors">
-                  {s.done ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-                    : <Circle className="text-muted-foreground mt-0.5 size-4 shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{i + 1}. {s.label}</p>
-                    {s.note && <p className="text-muted-foreground text-xs">{s.note}</p>}
-                  </div>
-                </Link>
+      <section className="mt-10">
+        <h2 className="text-sm font-medium">Your agents</h2>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {agents.map((a) => (
+            <Link key={a.id} href={a.pack ? "/skill-gap" : a.custom ? `/agents/${a.id}` : "/agents"}
+              className="bg-inner-grad hover:border-[rgba(6,71,179,0.35)] rounded-lg border p-3 transition-colors">
+              <p className="text-[13.5px] font-medium">{a.name}
+                <span className="text-muted-foreground ml-1.5 text-[11px]">{a.pack ? "pack" : a.custom ? "yours" : "built-in"}</span>
+              </p>
+              <p className="text-muted-foreground mt-1 line-clamp-2 text-[12px] leading-snug">{a.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {past.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-sm font-medium">Earlier</h2>
+          <ul className="mt-3 space-y-2">
+            {past.map((r) => (
+              <li key={r.id} className="rounded-lg border p-3">
+                <details>
+                  <summary className="text-[13.5px]">
+                    {r.request}
+                    <span className="text-muted-foreground ml-2 font-mono text-[11px]">{when(r.started_at)}</span>
+                  </summary>
+                  <div className="mt-2 text-[13.5px] leading-relaxed"><Markdown>{r.answer ?? ""}</Markdown></div>
+                  <ArtifactLinks items={((r.summary as { artifacts?: Artifact[] } | null)?.artifacts) ?? []} />
+                </details>
               </li>
             ))}
-          </ol>
-
-          <div id="run" className="rounded-lg border p-4">
-            <h2 className="text-sm font-semibold">Agent team</h2>
-            <p className="text-muted-foreground mt-1 mb-3 text-xs leading-relaxed">
-              The Orchestrator reads where you are and runs Skill Evidence, Roadmap, Planner and
-              Profile in order. Everything works without a model; connecting your own AI lets it
-              read between the lines, and every claim it makes is checked against your documents.
-            </p>
-            <AnalyseButton />
-            {last?.steps && last.steps.length > 0 && (
-              <details className="mt-4">
-                <summary className="text-muted-foreground cursor-pointer text-xs">Last run: what each agent did</summary>
-                <div className="mt-3"><AgentPanel steps={last.steps} /></div>
-              </details>
-            )}
-          </div>
+          </ul>
         </section>
-
-        <section className="min-w-0 space-y-6">
-          {g ? (
-            <div className="rounded-lg border p-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">{g.role.name}</h2>
-                <p className="font-mono text-3xl font-semibold tabular-nums">{g.match}%</p>
-              </div>
-              <p className="text-muted-foreground text-xs">
-                match · {g.counts.mastered} mastered · {g.counts.partial} partial · {g.counts.missing} missing
-              </p>
-              <RadarChart className="mx-auto mt-2 w-full max-w-sm"
-                axes={g.radar.map((r) => ({ label: r.category, value: r.score,
-                  baseline: before.has(r.category) ? before.get(r.category) : undefined }))} />
-              {before.size > 0 && (
-                <p className="text-muted-foreground text-center text-[11px]">dashed: your first analysis</p>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed p-6 text-sm">
-              <p className="font-medium">Your radar appears here</p>
-              <p className="text-muted-foreground mt-1">Add evidence, choose a role, then run the agents.</p>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label="Skills with evidence" value={impact?.skills_with_evidence ?? 0}
-              note="each with the quote that proves it" />
-            <Stat label="Hidden skills found" value={impact?.hidden_skills ?? 0}
-              note="proven, but not on your profile yet" />
-            <Stat label="Match, first → now"
-              value={impact?.match_before != null ? `${impact.match_before}% → ${impact.match_now}%` : "-"} />
-            <Stat label="Planned, next 4 weeks" value={impact?.planned_hours != null ? `${impact.planned_hours} h` : "-"}
-              note="never more than your free hours" />
-          </div>
-        </section>
-      </div>
-    </Page>
+      )}
+    </main>
   );
 }
