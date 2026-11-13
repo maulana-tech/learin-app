@@ -2,48 +2,48 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* LEARIS on the blue system (from AERA).
+/* LEARIS in monochrome (layout and primitives from AERA's design system).
  *
- * The page IS the brand blue #0647B3 with a faint dot grid; white panels float on it and carry dark
- * text. Every tone is the brand hue (217) at a different lightness, so a tone is only correct
- * against the surface it sits on: --on-canvas-* for text directly on the blue, the rest inside a
- * panel. Colour beyond the blue is used only as tiny semantic dots (green ok, yellow amount /
- * waiting, red bad, blue external). Weights 400 / 500 only, sentence case, Outfit for UI and
+ * The page is near-black with a faint dot grid; white panels float on it and carry dark
+ * text. Every tone is a grey at a different lightness, so a tone is only correct
+ * against the surface it sits on: --on-canvas-* for text directly on the canvas, the rest inside a
+ * panel. Colour is used only as tiny semantic dots (green ok, yellow amount /
+ * waiting, red bad). Weights 400 / 500 only, sentence case, Outfit for UI and
  * Geist Mono for ids, money, hashes and dates.
  *
- * Light only: the blue canvas is the brand, and a dark variant would be a second design to keep
+ * Light only: the dark canvas is the brand, and a dark variant would be a second design to keep
  * honest. `dark:` classes left in components are inert because no `.dark` class is ever set. */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* the canvas */
-  --brand: #0647b3;
-  --brand-lit: #0a5fe0;
-  --canvas: #0647b3;
-  --dot: #2a6fe8;
+  --brand: #111111;
+  --brand-lit: #2b2b2b;
+  --canvas: #0b0b0b;
+  --dot: #2a2a2a;
   --on-canvas: #ffffff;
-  --on-canvas-dim: rgba(255, 255, 255, 0.82);
+  --on-canvas-dim: rgba(255, 255, 255, 0.78);
 
   /* panels */
   --card-top: #ffffff;
-  --card-bot: #f3f7fe;
-  --inner-top: #f8fbff;
-  --inner-bot: #eef4fd;
-  --raised: #eef3fb;
-  --hover: #e3ebf7;
-  --inset: #e9f0fb;
+  --card-bot: #f6f6f6;
+  --inner-top: #fbfbfb;
+  --inner-bot: #f1f1f1;
+  --raised: #f0f0f0;
+  --hover: #e6e6e6;
+  --inset: #ececec;
 
   /* text ramp, measured on white */
-  --fg: #142745;
-  --text: #1f365d;
-  --body: #3a5177;
+  --fg: #111111;
+  --text: #262626;
+  --body: #404040;
 
   /* semantic dots: the only colour besides the brand */
   --green: #126c34;
   --yellow: #a16207;
   --red: #b71e1e;
-  --blue: #1d4ed8;
+  --blue: #525252;
   --mint: #34d399;
 
   /* shadcn's names, pointed at the same palette */
@@ -58,18 +58,18 @@
   --secondary: var(--raised);
   --secondary-foreground: var(--text);
   --muted: var(--raised);
-  --muted-foreground: #4b5e7f;
+  --muted-foreground: #5f5f5f;
   --accent: var(--hover);
   --accent-foreground: var(--fg);
   --destructive: var(--red);
-  --border: rgba(6, 35, 89, 0.12);
-  --input: rgba(6, 35, 89, 0.18);
-  --ring: rgba(6, 71, 179, 0.45);
-  --chart-1: #0647b3;
-  --chart-2: #2a6fe8;
-  --chart-3: #6b9cf0;
-  --chart-4: #a9c6f6;
-  --chart-5: #d6e4fb;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.16);
+  --ring: rgba(0, 0, 0, 0.35);
+  --chart-1: #111111;
+  --chart-2: #404040;
+  --chart-3: #737373;
+  --chart-4: #a3a3a3;
+  --chart-5: #d4d4d4;
   --radius: 10px;
 
   color-scheme: light;
@@ -133,8 +133,8 @@
   --radius-inner: 12px;
   --radius-card: 18px;
 
-  --shadow-soft: 0 8px 24px rgba(6, 35, 89, 0.14);
-  --shadow-float: 0 14px 40px rgba(6, 35, 89, 0.22);
+  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-float: 0 14px 40px rgba(0, 0, 0, 0.28);
 
   --animate-rise: rise 0.35s ease-out both;
 }
@@ -146,7 +146,7 @@
   }
 }
 
-/* the canvas: brand blue with a faint 22px dot grid */
+/* the canvas: near-black with a faint 22px dot grid */
 @utility dot-grid {
   background-color: var(--canvas);
   background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.4px);
@@ -156,7 +156,7 @@
 /* the same grid inside a white panel */
 @utility dot-grid-soft {
   background-color: var(--inset);
-  background-image: radial-gradient(circle, rgb(6 35 89 / 0.16) 1px, transparent 1.4px);
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.12) 1px, transparent 1.4px);
   background-size: 22px 22px;
 }
 
@@ -191,7 +191,7 @@
     top: -10px;
     height: 46px;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(6, 71, 179, 0.28), rgba(37, 108, 231, 0.18));
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.08));
     filter: blur(22px);
     pointer-events: none;
   }
@@ -237,15 +237,15 @@ html {
     cursor: pointer;
   }
   ::selection {
-    background: rgba(6, 71, 179, 0.18);
+    background: rgba(0, 0, 0, 0.12);
   }
 }
 
 /* ------------------------------------------------------------------ charts
-   One series hue only: the brand blue. Critical vs safe is carried by the threshold line,
+   One series tone only: the brand black. Critical vs safe is carried by the threshold line,
    row order and direct labels, not by red/green. */
 .viz {
-  --viz-series: #0647b3;
+  --viz-series: #111111;
   --viz-track: color-mix(in oklab, var(--viz-series) 12%, transparent);
   --viz-rule: var(--border);
 }
