@@ -2,6 +2,8 @@ import { ExternalLink } from "lucide-react";
 
 import { apiResult, when, type Doc, type Student } from "@/app/lib";
 import { AnalyseButton } from "@/components/analyse-button";
+import { FileIcon, kb } from "@/components/bits";
+import { Chip } from "@/components/dort";
 import { EmptyState, Page, ServiceDown } from "@/components/page-bits";
 import { PageHeader } from "@/components/shell";
 import { KIND_LABEL } from "@/components/skill-bits";
@@ -27,7 +29,7 @@ export default async function EvidencePage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="min-w-0 space-y-4">
           <AddEvidence />
-          <div className="text-muted-foreground rounded-lg border p-4 text-xs leading-relaxed">
+          <div className="text-muted-foreground bg-inner-grad rounded-xl border p-4 text-xs leading-relaxed">
             <p className="text-foreground font-medium">Your data</p>
             <p className="mt-1">
               {st.data.auto_delete
@@ -50,23 +52,25 @@ export default async function EvidencePage() {
             <EmptyState title="No evidence yet"
               body="Start with the syllabus of a course you liked, your transcript, or the README of something you built. Three documents are enough for a first radar." />
           ) : (
-            <ul className="divide-y rounded-lg border bg-white">
+            <ul className="bg-inner-grad divide-y rounded-xl border">
               {list.map((d) => (
-                <li key={d.id} className="flex items-start gap-3 p-3">
+                <li key={d.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/70">
+                  <FileIcon name={d.title} url={d.source_url} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium">{d.title}</p>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      {KIND_LABEL[d.kind] ?? d.kind} · {d.chars.toLocaleString()} chars · added {when(d.uploaded_at)}
-                    </p>
-                    <p className="mt-1 text-xs">
-                      {d.analysed_at
-                        ? <span className="text-ok">read · {d.skills} skill(s) proven{d.text_kept ? "" : " · text deleted, quotes kept"}</span>
-                        : <span className="text-warn">waiting for the agents</span>}
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-[13.5px] font-medium">{d.title}</p>
+                      <Chip className="shrink-0">{KIND_LABEL[d.kind] ?? d.kind}</Chip>
+                    </div>
+                    <p className="text-muted-foreground mt-0.5 truncate text-[11.5px]">
+                      {kb(d.chars)} · added {when(d.uploaded_at)}{d.analysed_at && !d.text_kept ? " · text deleted, quotes kept" : ""}
                     </p>
                   </div>
+                  {d.analysed_at
+                    ? <Chip tone="ok" className="shrink-0">{d.skills} skill(s)</Chip>
+                    : <Chip tone="warn" className="shrink-0">not read yet</Chip>}
                   {d.source_url && (
-                    <a href={d.source_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground p-2"
-                      aria-label="Open source"><ExternalLink className="size-4" /></a>
+                    <a href={d.source_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground p-1.5"
+                      aria-label="Open source"><ExternalLink className="size-3.5" /></a>
                   )}
                   <DeleteDoc id={d.id} title={d.title} />
                 </li>
@@ -74,7 +78,7 @@ export default async function EvidencePage() {
             </ul>
           )}
           {list.length > 0 && (
-            <div className="bg-inner-grad rounded-lg border p-4"><AnalyseButton label={pending ? "Read new evidence" : "Run the agents again"} /></div>
+            <div className="bg-card-grad rounded-xl border p-4 shadow-soft"><AnalyseButton label={pending ? "Read new evidence" : "Run the agents again"} /></div>
           )}
         </div>
       </div>
