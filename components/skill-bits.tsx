@@ -1,10 +1,11 @@
-import { Badge } from "@/components/ui/badge";
+import { Chip, type Tone } from "@/components/dort";
 import { cn } from "@/lib/utils";
 
-export const STATUS: Record<string, { label: string; badge: string; bar: string }> = {
-  mastered: { label: "mastered", badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400", bar: "bg-emerald-500" },
-  partial:  { label: "partial",  badge: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400", bar: "bg-amber-500" },
-  missing:  { label: "missing",  badge: "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400", bar: "bg-rose-500" },
+/* Skill states in the blue system: the chip is pale blue, only the dot carries the state. */
+export const STATUS: Record<string, { label: string; tone: Tone }> = {
+  mastered: { label: "mastered", tone: "ok" },
+  partial: { label: "partial", tone: "warn" },
+  missing: { label: "missing", tone: "bad" },
 };
 
 export function statusOf(conf: number): "mastered" | "partial" | "missing" {
@@ -13,18 +14,19 @@ export function statusOf(conf: number): "mastered" | "partial" | "missing" {
 
 export function StatusPill({ status, className }: { status: string; className?: string }) {
   const s = STATUS[status] ?? STATUS.missing;
-  return <Badge variant="outline" className={cn("font-mono text-[10px]", s.badge, className)}>{s.label}</Badge>;
+  return <Chip tone={s.tone} className={className}>{s.label}</Chip>;
 }
 
-/** Confidence as a bar with its number. The colour follows the status, the number is always written. */
+/** Confidence as a brand-blue bar with its number; the number is always written. */
 export function Confidence({ value, className }: { value: number; className?: string }) {
-  const s = STATUS[statusOf(value)];
+  const pct = Math.round(value * 100);
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="bg-muted h-1.5 w-20 overflow-hidden rounded-full" aria-hidden>
-        <div className={cn("h-full rounded-full", s.bar)} style={{ width: `${Math.round(value * 100)}%` }} />
+      <div className="bg-inset h-1.5 w-20 overflow-hidden rounded-full" aria-hidden>
+        <div className={cn("h-full rounded-full", value >= 0.6 ? "bg-brand" : value >= 0.25 ? "bg-brand/60" : "bg-brand/30")}
+          style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-muted-foreground font-mono text-[11px] tabular-nums">{Math.round(value * 100)}%</span>
+      <span className="text-muted-foreground font-mono text-[11px] tabular-nums">{pct}%</span>
     </div>
   );
 }
@@ -36,7 +38,7 @@ const METHOD: Record<string, string> = {
 };
 
 export function MethodTag({ method }: { method: string }) {
-  return <span className="text-muted-foreground font-mono text-[10px]">{METHOD[method] ?? method}</span>;
+  return <span className="text-muted-foreground font-mono text-[10.5px]">{METHOD[method] ?? method}</span>;
 }
 
 export const KIND_LABEL: Record<string, string> = {
