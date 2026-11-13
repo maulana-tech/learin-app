@@ -7,7 +7,7 @@ import type { Region, Role } from "@/app/lib";
 import { Button } from "@/components/ui/button";
 import { call } from "@/lib/ai-config";
 
-const field = "border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+const field = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(6,35,89,0.28)] focus-visible:border-[rgba(6,71,179,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(6,71,179,0.08)]";
 
 export function TargetForm({ roles, regions, role, region }: {
   roles: Role[]; regions: Region[]; role: string | null; region: string | null;
