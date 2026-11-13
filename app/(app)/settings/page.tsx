@@ -1,4 +1,5 @@
-import { apiResult, type Catalog, type Student } from "@/app/lib";
+import { api, apiResult, type Catalog, type Student } from "@/app/lib";
+import { Dot } from "@/components/dort";
 import { Page, ServiceDown } from "@/components/page-bits";
 import { PageHeader } from "@/components/shell";
 import { AISettings } from "./AISettings";
@@ -7,7 +8,8 @@ import { Privacy } from "./Privacy";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const [cat, st] = await Promise.all([apiResult<Catalog>("catalog"), apiResult<Student>("student")]);
+  const [cat, st, health] = await Promise.all([apiResult<Catalog>("catalog"), apiResult<Student>("student"),
+    api<{ server_ai: boolean; server_ai_model?: string; server_ai_provider?: string }>("health")]);
   if (!cat.data || !st.data) return <ServiceDown error={cat.error ?? st.error} />;
   return (
     <Page>
@@ -17,8 +19,14 @@ export default async function SettingsPage() {
         <section className="bg-inner-grad min-w-0 rounded-lg border p-4">
           <h2 className="mb-3 text-[14px] font-medium">Your AI connection</h2>
           <AISettings presets={cat.data.ai_presets} />
-          {cat.data.server_ai && (
-            <p className="text-muted-foreground mt-3 text-xs">This deployment also has its own model, used when you have not connected one.</p>
+          {health?.server_ai && (
+            <div className="bg-raised mt-4 flex items-start gap-2 rounded-md p-3 text-[12.5px]">
+              <Dot tone="ok" className="mt-[6px]" />
+              <p>
+                This deployment has its own model: <span className="font-mono">{health.server_ai_model}</span> on {health.server_ai_provider}.
+                It is used for everyone who has not connected a model of their own, so you can start without a key.
+              </p>
+            </div>
           )}
         </section>
         <section className="bg-inner-grad min-w-0 rounded-lg border p-4">
