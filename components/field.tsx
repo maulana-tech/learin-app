@@ -17,7 +17,7 @@ export function Field({ label, hint, children, className, optional }: {
   );
 }
 
-const control = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(6,35,89,0.28)] focus-visible:border-[rgba(6,71,179,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(6,71,179,0.08)] disabled:opacity-60";
+const control = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(0,0,0,0.28)] focus-visible:border-[rgba(0,0,0,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(0,0,0,0.08)] disabled:opacity-60";
 
 export function TextArea(props: React.ComponentProps<"textarea">) {
   return <textarea {...props} className={cn(control, props.className)} />;
