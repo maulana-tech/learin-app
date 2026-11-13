@@ -27,7 +27,7 @@ export default async function PagesPage() {
           <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {r.data.pages.map((p) => (
               <li key={p.id}>
-                <Link href={`/pages/${p.id}`} className="bg-inner-grad hover:border-[rgba(6,71,179,0.35)] block rounded-lg border p-4 transition-colors">
+                <Link href={`/pages/${p.id}`} className="bg-inner-grad hover:border-[rgba(0,0,0,0.35)] block rounded-lg border p-4 transition-colors">
                   <p className="truncate text-[14px] font-medium">{p.title}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <Chip tone={p.updated_by.startsWith("agent:") ? "info" : "neutral"}>{who(p.updated_by, names)}</Chip>
