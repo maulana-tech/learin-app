@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { Artifact, AskRun } from "@/app/lib";
+import { AgentBadge } from "@/components/agent-card";
 import { AgentPanel } from "@/components/agent-panel";
 import { Dot } from "@/components/dort";
 import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
 import { call, useAIConfig } from "@/lib/ai-config";
+import { useServerAI } from "@/lib/server-ai";
+import { ModelPicker } from "@/components/model-picker";
 import { cn } from "@/lib/utils";
 
 const EXAMPLES = [
@@ -35,10 +38,13 @@ export function ArtifactLinks({ items }: { items: Artifact[] }) {
   );
 }
 
-/** Ask the Orchestrator. It splits the request across the agents and the panel shows each one working. */
-export function Ask({ workspaceName }: { workspaceName: string }) {
+/** Ask the Orchestrator (or, with `endpoint`, one agent directly). The panel shows each agent working. */
+export function Ask({ workspaceName, endpoint = "ask", examples = EXAMPLES, speaker = "Orchestrator", placeholder }: {
+  workspaceName: string; endpoint?: string; examples?: string[]; speaker?: string; placeholder?: string;
+}) {
   const router = useRouter();
   const cfg = useAIConfig();
+  const server = useServerAI();
   const [text, setText] = useState("");
   const [run, setRun] = useState<AskRun | null>(null);
   const [error, setError] = useState("");
@@ -62,7 +68,7 @@ export function Ask({ workspaceName }: { workspaceName: string }) {
     if (!request.trim() || busy) return;
     setError("");
     try {
-      const { run_id } = await call<{ run_id: string }>("ask", { request }, { ai: true });
+      const { run_id } = await call<{ run_id: string }>(endpoint, { request }, { ai: true });
       setRun({ id: run_id, status: "queued", ai: null, started_at: "", finished_at: null, error: null, steps: [], request });
       setText("");
       poll(run_id);
@@ -72,7 +78,8 @@ export function Ask({ workspaceName }: { workspaceName: string }) {
   }
 
   const artifacts = (run?.summary?.artifacts as Artifact[] | undefined) ?? [];
-  const noTools = !cfg || cfg.tools === false;
+  // The browser's own model wins; without one, the deployment's (e.g. Bedrock) is used.
+  const noTools = cfg ? cfg.tools === false : !server;
 
   return (
     <div className="space-y-4">
@@ -80,13 +87,12 @@ export function Ask({ workspaceName }: { workspaceName: string }) {
         className="bg-inner-grad focus-within:border-[rgba(0,0,0,0.45)] rounded-xl border p-3 shadow-soft">
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} disabled={busy}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text); } }}
-          placeholder={`Ask your agents anything about ${workspaceName}…`}
+          placeholder={placeholder ?? `Ask your agents anything about ${workspaceName}…`}
           className="text-fg placeholder:text-muted-foreground/80 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none" />
         <div className="flex items-center justify-between gap-2">
-          <span className="text-muted-foreground flex items-center gap-1.5 text-[12px]">
-            <Dot tone={noTools ? "warn" : "ok"} />
-            {noTools ? <>The Orchestrator needs a tool-calling model · <Link href="/settings" className="text-brand">connect one</Link></>
-              : <>Orchestrator on <span className="font-mono">{cfg?.model}</span></>}
+          <span className="flex min-w-0 items-center gap-2">
+            <ModelPicker />
+            {noTools && <span className="text-warn hidden truncate text-[11.5px] sm:inline">{speaker} needs a model that can call tools</span>}
           </span>
           <Button type="submit" size="icon" disabled={busy || !text.trim()} aria-label="Ask">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
@@ -96,7 +102,7 @@ export function Ask({ workspaceName }: { workspaceName: string }) {
 
       {!run && (
         <div className="flex flex-wrap gap-2">
-          {EXAMPLES.map((x) => (
+          {examples.map((x) => (
             <button key={x} type="button" onClick={() => setText(x)}
               className="bg-raised text-text hover:bg-hover rounded-md px-3 py-1.5 text-left text-[12.5px] leading-snug">
               {x}
@@ -113,7 +119,7 @@ export function Ask({ workspaceName }: { workspaceName: string }) {
           {run.status === "queued" && <p className="text-muted-foreground text-[13px]">Waiting for a worker…</p>}
           {run.answer && (
             <div className={cn("bg-card-grad rounded-lg border p-4 shadow-soft")}>
-              <p className="text-muted-foreground mb-1 text-[12px]">Orchestrator</p>
+              <p className="text-muted-foreground mb-1 flex items-center gap-2 text-[12px]"><AgentBadge nickname={speaker} size="xs" showTooltip={false} />{speaker}</p>
               <div className="text-[14px] leading-relaxed"><Markdown>{run.answer}</Markdown></div>
               <ArtifactLinks items={artifacts} />
             </div>
