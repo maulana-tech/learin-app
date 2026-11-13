@@ -34,9 +34,9 @@ export function EmptyState({ title, body, href, cta }: { title: string; body: st
 
 export function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
-    <div className="bg-inner-grad min-w-0 rounded-lg border p-4">
+    <div className="min-w-0 rounded-xl border bg-white p-4 shadow-soft">
       <p className="text-muted-foreground text-[12px]">{label}</p>
-      <p className="mt-1.5 font-mono text-xl font-medium tabular-nums">{value}</p>
+      <p className="mt-1.5 font-mono text-2xl font-medium tabular-nums">{value}</p>
       {note && <p className="text-muted-foreground mt-1 text-[11.5px] leading-snug">{note}</p>}
     </div>
   );
