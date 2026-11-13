@@ -37,20 +37,20 @@ export function RadarChart({ axes, size = 320, className }: {
       })}
       {hasBaseline && (
         <polygon points={poly(axes.map((a) => a.baseline ?? 0))}
-          className="fill-none stroke-muted-foreground" strokeWidth={1.5} strokeDasharray="4 4" />
+          className="fill-none stroke-[#6b9cf0]" strokeWidth={1.5} strokeDasharray="4 4" />
       )}
       <polygon points={poly(axes.map((a) => a.value))}
-        className="fill-emerald-500/20 stroke-emerald-600 dark:stroke-emerald-400" strokeWidth={2} />
+        className="fill-brand/15 stroke-brand" strokeWidth={2} />
       {axes.map((a, i) => {
         const [x, y] = point(i, a.value);
-        return <circle key={a.label} cx={x} cy={y} r={3.5} className="fill-emerald-600 dark:fill-emerald-400" />;
+        return <circle key={a.label} cx={x} cy={y} r={3.5} className="fill-brand stroke-white" strokeWidth={1.5} />;
       })}
       {axes.map((a, i) => {
         const [x, y] = point(i, 122);
         const anchor = Math.abs(x - c) < 8 ? "middle" : x > c ? "start" : "end";
         return (
           <text key={a.label} x={x} y={y} textAnchor={anchor} dominantBaseline="middle"
-            className="fill-foreground text-[11px]">
+            className="fill-text text-[11px]">
             {a.label}
             <tspan x={x} dy="1.2em" className="fill-muted-foreground font-mono text-[10px]">{a.value}%</tspan>
           </text>
