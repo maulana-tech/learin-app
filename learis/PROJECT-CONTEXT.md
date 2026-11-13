@@ -173,3 +173,32 @@ Upload bukti → skill muncul beserta sumbernya → pilih role → gap map → r
 | P2 | Simulasi wawancara, integrasi kursus, dll. | ⏳ | Belum |
 | — | Tool per agent + tool-use loop | ✅ | 19 tool (`tools/`, `core/registry.py`), `agents/loop.py`; fallback ke langkah tetap |
 | — | Worker + job terjadwal | ✅ | `core/worker.py` (antrean run), `core/jobs.py` (stale_runs, purge_text, checkin) |
+
+---
+
+## Arah baru: agentic workspace (keputusan terbaru)
+
+- **Konsep:** workspace seperti Lark/Notion dengan sistem multi-agent (swarm).
+  - Orchestrator mendelegasikan permintaan user ke agent-agent: Reader, Writer, Planner, Reviewer, agent kustom buatan user, dan pack Skill Gap.
+  - User bebas meng-customisasi agent, seperti di ADE (Orca).
+  - Untuk mahasiswa khususnya, dan user umum.
+- **Contoh alur utama:** upload materi satu semester (banyak matkul, tiap file diberi label matkul) → Orchestrator mengirim satu Writer per matkul secara paralel → halaman ringkasan bersumber → Planner membuat jadwal belajar.
+- **Grup sebagai fitur pendukung** (Social Impact): undang teman lewat link, bagi tugas ke anggota dan agent, dashboard dampak, dan laporan kegiatan otomatis.
+- **Skill Gap Radar** menjadi agent pack bawaan.
+- **Tema utama:** AI (Smart Assistant). Sudut Open Innovation dan Social Impact diceritakan di pitch.
+- **UI** mengikuti bahasa desain AERA: kanvas biru, panel putih, side-nav biru.
+
+| Fitur | Status | Di mana |
+|---|---|---|
+| Orchestrator LLM + delegasi paralel | ✅ | `agents/workspace.py` (`delegate`, `delegate_parallel`, maks 6) |
+| Agent bawaan Reader, Writer, Planner, Reviewer | ✅ | `tools/workspace_tools.py`; tiap agent hanya melihat tool-nya |
+| Halaman dengan sitasi terverifikasi + Review | ✅ | `core/space.py` (`check_sources`, `review`) |
+| Task untuk orang dan agent, tombol Run | ✅ | `/tasks`, `run_task` |
+| Agent builder (instruksi, tool, model) | ✅ | `/agents/new` |
+| Galeri agent komunitas | ✅ | `/gallery`, `install` |
+| File per matkul (upload satu semester) | ✅ | `/files`, kolom `collection` |
+| Grup: undangan, anggota, beban kerja | ✅ | `/group`, `/invite/[token]`, sign up mandiri |
+| Dashboard dampak + laporan kegiatan | ✅ | `space.impact`, `report_markdown` (tanpa model, angka dari database) |
+| Pack Skill Gap Radar | ✅ | `/skill-gap/*` |
+| Interaksi suara | ⏳ | Belum |
+| Kolaborasi real-time (dua orang mengedit halaman bersamaan) | ⏳ | Belum; perubahan terakhir menimpa |
