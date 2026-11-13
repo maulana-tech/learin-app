@@ -193,6 +193,24 @@ def file(user_id: str, fid: str, with_text: bool = True) -> Dict[str, Any]:
     return d
 
 
+def file_preview(user_id: str, fid: str) -> Dict[str, Any]:
+    """A file as its reader sees it: the text the agents read, who added it, and every page that
+    cites it, with the quotes taken from it."""
+    f = file(user_id, fid)
+    with connect() as c:
+        who = c.execute("SELECT name FROM users WHERE id=?", (f["uploaded_by"],)).fetchone()
+        rows = c.execute("SELECT id, title, sources FROM pages WHERE workspace_id=? ORDER BY updated_at DESC",
+                         (f["workspace_id"],)).fetchall()
+    cited = []
+    for r in rows:
+        quotes = [{"n": s["n"], "quote": s["quote"]} for s in json.loads(r["sources"] or "[]") if s.get("file_id") == fid]
+        if quotes:
+            cited.append({"page_id": r["id"], "title": r["title"], "quotes": quotes})
+    return {"id": f["id"], "name": f["name"], "collection": f["collection"], "chars": f["chars"],
+            "source_url": f["source_url"], "uploaded_at": f["uploaded_at"], "uploader": who["name"] if who else None,
+            "text": f["text"], "cited_by": cited}
+
+
 def files(user_id: str, wid: str) -> List[Dict[str, Any]]:
     role_in(user_id, wid)
     with connect() as c:
@@ -247,6 +265,9 @@ def search(user_id: str, wid: str, query: str, limit: int = 8) -> List[Dict[str,
 
 
 # ----------------------------------------------------------------- pages
+MAX_QUOTE = 400
+
+
 def check_sources(user_id: str, wid: str, sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Each source must quote a file of this workspace word for word."""
     out = []
@@ -257,7 +278,11 @@ def check_sources(user_id: str, wid: str, sources: List[Dict[str, Any]]) -> List
         quote = str(s.get("quote") or "").strip()
         if len(quote) < 3 or _norm(quote) not in _norm(f["text"]):
             raise ValueError(f"source [{i}]: the quote is not in '{f['name']}'")
-        out.append({"n": i, "file_id": f["id"], "file_name": f["name"], "quote": quote[:400]})
+        if len(quote) > MAX_QUOTE:
+            # A quote is the passage that proves one claim, not a whole file: then [n] would "prove" anything.
+            raise ValueError(f"source [{i}]: the quote is {len(quote)} characters; quote only the sentence that "
+                             f"proves the claim (at most {MAX_QUOTE}), and give each distinct fact its own source")
+        out.append({"n": i, "file_id": f["id"], "file_name": f["name"], "quote": quote})
     return out
 
 
