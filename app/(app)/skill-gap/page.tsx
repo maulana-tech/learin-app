@@ -53,14 +53,14 @@ export default async function Overview() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <section className="min-w-0 space-y-6">
-          <ol className="divide-y rounded-lg border">
+          <ol className="divide-y rounded-lg border bg-white">
             {steps.map((s, i) => (
               <li key={s.label}>
-                <Link href={s.href} className="hover:bg-muted/50 flex items-start gap-3 p-3 transition-colors">
-                  {s.done ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                <Link href={s.href} className="hover:bg-hover flex items-start gap-3 p-3 transition-colors">
+                  {s.done ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" />
                     : <Circle className="text-muted-foreground mt-0.5 size-4 shrink-0" />}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">{i + 1}. {s.label}</p>
+                    <p className="text-[14px] font-medium">{i + 1}. {s.label}</p>
                     {s.note && <p className="text-muted-foreground text-xs">{s.note}</p>}
                   </div>
                 </Link>
@@ -68,8 +68,8 @@ export default async function Overview() {
             ))}
           </ol>
 
-          <div id="run" className="rounded-lg border p-4">
-            <h2 className="text-sm font-semibold">Agent team</h2>
+          <div id="run" className="bg-inner-grad rounded-lg border p-4">
+            <h2 className="text-[14px] font-medium">Agent team</h2>
             <p className="text-muted-foreground mt-1 mb-3 text-xs leading-relaxed">
               The Orchestrator reads where you are and runs Skill Evidence, Roadmap, Planner and
               Profile in order. Everything works without a model; connecting your own AI lets it
@@ -87,10 +87,10 @@ export default async function Overview() {
 
         <section className="min-w-0 space-y-6">
           {g ? (
-            <div className="rounded-lg border p-4">
+            <div className="bg-inner-grad glow-top rounded-lg border p-4 shadow-soft">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">{g.role.name}</h2>
-                <p className="font-mono text-3xl font-semibold tabular-nums">{g.match}%</p>
+                <h2 className="text-[14px] font-medium">{g.role.name}</h2>
+                <p className="font-mono text-3xl font-medium tabular-nums">{g.match}%</p>
               </div>
               <p className="text-muted-foreground text-xs">
                 match · {g.counts.mastered} mastered · {g.counts.partial} partial · {g.counts.missing} missing
@@ -103,7 +103,7 @@ export default async function Overview() {
               )}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed p-6 text-sm">
+            <div className="dot-grid-soft rounded-lg border border-dashed p-6 text-sm">
               <p className="font-medium">Your radar appears here</p>
               <p className="text-muted-foreground mt-1">Add evidence, choose a role, then run the agents.</p>
             </div>
