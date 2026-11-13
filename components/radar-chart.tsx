@@ -37,7 +37,7 @@ export function RadarChart({ axes, size = 320, className }: {
       })}
       {hasBaseline && (
         <polygon points={poly(axes.map((a) => a.baseline ?? 0))}
-          className="fill-none stroke-[#6b9cf0]" strokeWidth={1.5} strokeDasharray="4 4" />
+          className="fill-none stroke-[#a3a3a3]" strokeWidth={1.5} strokeDasharray="4 4" />
       )}
       <polygon points={poly(axes.map((a) => a.value))}
         className="fill-brand/15 stroke-brand" strokeWidth={2} />
