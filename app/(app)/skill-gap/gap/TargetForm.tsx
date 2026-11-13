@@ -5,9 +5,9 @@ import { useState } from "react";
 
 import type { Region, Role } from "@/app/lib";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { call } from "@/lib/ai-config";
 
-const field = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(0,0,0,0.28)] focus-visible:border-[rgba(0,0,0,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(0,0,0,0.08)]";
 
 export function TargetForm({ roles, regions, role, region }: {
   roles: Role[]; regions: Region[]; role: string | null; region: string | null;
@@ -41,18 +41,15 @@ export function TargetForm({ roles, regions, role, region }: {
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <label className="space-y-1">
+      <div className="w-56 space-y-1">
         <span className="text-muted-foreground block text-xs">Target role</span>
-        <select value={r} onChange={(e) => setR(e.target.value)} className={field}>
-          {roles.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-        </select>
-      </label>
-      <label className="space-y-1">
+        <Select value={r} onValueChange={setR} ariaLabel="Target role"
+          options={roles.map((x) => ({ value: x.id, label: x.name, hint: `${x.skills} skills` }))} />
+      </div>
+      <div className="w-44 space-y-1">
         <span className="text-muted-foreground block text-xs">Region</span>
-        <select value={g} onChange={(e) => setG(e.target.value)} className={field}>
-          {regions.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-        </select>
-      </label>
+        <Select value={g} onValueChange={setG} ariaLabel="Region" options={regions.map((x) => ({ value: x.id, label: x.name }))} />
+      </div>
       <Button onClick={save} disabled={busy || (!changed && !!role)}>
         {busy ? "Updating…" : role ? "Update" : "Set target"}
       </Button>
