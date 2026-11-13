@@ -108,6 +108,108 @@ CREATE TABLE IF NOT EXISTS outputs (
 );
 """
 
+# ------------------------------------------------------------- workspaces
+# The agentic workspace: a personal one per user, and groups people invite
+# their friends into. Pages, tasks, files and custom agents belong to a
+# workspace; every member of it sees them. The Skill Gap pack above stays
+# per student.
+SPACE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS workspaces (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  kind        TEXT NOT NULL,        -- personal | group
+  purpose     TEXT,                 -- what the group is for, shown on its page
+  owner_id    TEXT NOT NULL,
+  created_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS members (
+  workspace_id   TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id        TEXT NOT NULL,
+  role           TEXT NOT NULL,     -- owner | member
+  hours_per_week REAL NOT NULL DEFAULT 6,
+  joined_at      TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS invites (
+  token        TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  created_by   TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  expires_at   TEXT NOT NULL,
+  uses         INTEGER NOT NULL DEFAULT 0,
+  max_uses     INTEGER NOT NULL DEFAULT 25,
+  revoked      INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS pages (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  title        TEXT NOT NULL,
+  content      TEXT NOT NULL DEFAULT '',
+  sources      TEXT NOT NULL DEFAULT '[]',   -- [{n, file_id, file_name, quote}]
+  created_by   TEXT NOT NULL,                 -- user id, or agent:<code>
+  updated_by   TEXT NOT NULL,
+  run_id       TEXT,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS tasks (
+  id             TEXT PRIMARY KEY,
+  workspace_id   TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  title          TEXT NOT NULL,
+  description    TEXT NOT NULL DEFAULT '',
+  status         TEXT NOT NULL DEFAULT 'todo',  -- todo | doing | done
+  assignee_type  TEXT,                          -- user | agent
+  assignee_id    TEXT,
+  due_date       TEXT,
+  estimate_hours REAL,
+  page_id        TEXT,
+  created_by     TEXT NOT NULL,
+  run_id         TEXT,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL,
+  done_at        TEXT,
+  done_by        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tasks_ws ON tasks(workspace_id, status);
+CREATE TABLE IF NOT EXISTS files (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  text         TEXT NOT NULL,
+  chars        INTEGER NOT NULL,
+  source_url   TEXT,
+  uploaded_by  TEXT NOT NULL,
+  uploaded_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS agents (
+  id           TEXT PRIMARY KEY,
+  workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  description  TEXT NOT NULL,
+  instructions TEXT NOT NULL,
+  tools        TEXT NOT NULL,       -- JSON list of tool names
+  model        TEXT,                -- optional per-agent model
+  icon         TEXT,
+  shared       INTEGER NOT NULL DEFAULT 0,   -- listed in the community gallery
+  template_of  TEXT,                -- the gallery agent it was installed from
+  installs     INTEGER NOT NULL DEFAULT 0,
+  created_by   TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+"""
+
+#: Columns added to tables that predate the workspace.
+ADDED_LATER = [
+    ("runs", "workspace_id", "TEXT"),
+    ("runs", "request", "TEXT"),
+    ("runs", "answer", "TEXT"),
+    ("runs", "kind", "TEXT"),
+    # The course (or any collection) a workspace file belongs to: a semester of
+    # material uploaded at once is split by course, one agent per course.
+    ("files", "collection", "TEXT"),
+]
+
 DOC_KINDS = ("syllabus", "transcript", "project", "github", "portfolio", "cv", "other")
 
 
@@ -129,6 +231,12 @@ def connect() -> Iterator[sqlite3.Connection]:
     c.execute("PRAGMA journal_mode = WAL")
     try:
         c.executescript(SCHEMA)
+        c.executescript(SPACE_SCHEMA)
+        for table, column, decl in ADDED_LATER:
+            try:
+                c.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+            except sqlite3.OperationalError:
+                pass                      # already there
         yield c
         c.commit()
     finally:
@@ -337,9 +445,13 @@ def checkin_due(days: int = 7) -> List[str]:
     return [r["user_id"] for r in rows]
 
 
+_STEP_LOCK = __import__("threading").Lock()
+
+
 def add_step(run_id: str, agent: str, kind: str, message: str,
              detail: Optional[Dict[str, Any]] = None) -> None:
-    with connect() as c:
+    # Agents working in parallel write to the same run: one numbering at a time.
+    with _STEP_LOCK, connect() as c:
         seq = c.execute("SELECT COALESCE(MAX(seq),0)+1 FROM steps WHERE run_id=?",
                         (run_id,)).fetchone()[0]
         c.execute("INSERT INTO steps (run_id,seq,agent,kind,message,detail,at) VALUES (?,?,?,?,?,?,?)",
@@ -367,12 +479,22 @@ def run(run_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     return d
 
 
+def runs_in_workspace(wid: str, limit: int = 40) -> List[Dict[str, Any]]:
+    """Every run in a workspace, whoever started it: a group sees its own work."""
+    with connect() as c:
+        rows = c.execute("SELECT r.id,r.status,r.ai,r.started_at,r.finished_at,r.error,r.workspace_id,r.request,"
+                         "r.answer,r.kind,r.summary,r.user_id,u.name AS user_name FROM runs r"
+                         " LEFT JOIN users u ON u.id=r.user_id WHERE r.workspace_id=?"
+                         " ORDER BY r.started_at DESC LIMIT ?", (wid, limit)).fetchall()
+    return [dict(r) | {"summary": json.loads(r["summary"]) if r["summary"] else None} for r in rows]
+
+
 def runs(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
     with connect() as c:
-        rows = c.execute("SELECT id,status,ai,started_at,finished_at,error FROM runs"
-                         " WHERE user_id=? ORDER BY started_at DESC LIMIT ?",
+        rows = c.execute("SELECT id,status,ai,started_at,finished_at,error,workspace_id,request,answer,kind,summary"
+                         " FROM runs WHERE user_id=? ORDER BY started_at DESC LIMIT ?",
                          (user_id, limit)).fetchall()
-    return [dict(r) for r in rows]
+    return [dict(r) | {"summary": json.loads(r["summary"]) if r["summary"] else None} for r in rows]
 
 
 # ------------------------------------------------------------------- outputs
