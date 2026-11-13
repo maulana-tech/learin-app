@@ -4,11 +4,12 @@ import { useState } from "react";
 
 import type { Preset } from "@/app/lib";
 import { Button } from "@/components/ui/button";
+import { ControlRow, Switch } from "@/components/ui/controls";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { call, maskKey, saveAI, useAIConfig, type AIConfig } from "@/lib/ai-config";
 import { cn } from "@/lib/utils";
 
-const field = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(0,0,0,0.28)] focus-visible:border-[rgba(0,0,0,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(0,0,0,0.08)]";
 const AGENTS = [["evidence", "Skill Evidence"], ["roadmap", "Roadmap"], ["planner", "Planner"], ["profile", "Profile"]];
 
 export function AISettings({ presets }: { presets: Record<string, Preset> }) {
@@ -52,13 +53,12 @@ function Form({ presets, saved }: { presets: Record<string, Preset>; saved: AICo
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1">
+        <div className="space-y-1">
           <span className="text-muted-foreground text-xs">Provider</span>
-          <select className={field} value={cfg.provider}
-            onChange={(e) => setCfg({ ...cfg, provider: e.target.value, base_url: "", model: "" })}>
-            {Object.entries(presets).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
-          </select>
-        </label>
+          <Select value={cfg.provider} ariaLabel="Provider"
+            onValueChange={(v) => setCfg({ ...cfg, provider: v, base_url: "", model: "" })}
+            options={Object.entries(presets).map(([k, p]) => ({ value: k, label: p.label, hint: p.model || "any model" }))} />
+        </div>
         <label className="space-y-1">
           <span className="text-muted-foreground text-xs">Model</span>
           <Input value={cfg.model} placeholder={preset?.model || "model name"}
@@ -83,20 +83,11 @@ function Form({ presets, saved }: { presets: Record<string, Preset>; saved: AICo
         </p>
       )}
 
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" className="mt-1" checked={tools} onChange={(e) => setCfg({ ...cfg, tools: e.target.checked })} />
-        <span>
-          Agents choose their own tools (function calling)
-          <span className="text-muted-foreground block text-xs">
-            Each agent picks from its own tools and every call shows in the agent panel. Tools still
-            refuse anything unproven. Off: the agents follow fixed steps, which suits small local models.
-          </span>
-        </span>
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={perAgent} onChange={(e) => setPerAgent(e.target.checked)} />
-        A different model per agent (cheap for reading, strong for writing)
-      </label>
+      <ControlRow control={<Switch checked={tools} onCheckedChange={(v) => setCfg({ ...cfg, tools: v })} />}
+        label="Agents choose their own tools (function calling)"
+        hint="Each agent picks from its own tools and every call shows in the agent panel. Tools still refuse anything unproven. Off: the agents follow fixed steps, which suits small local models." />
+      <ControlRow control={<Switch checked={perAgent} onCheckedChange={setPerAgent} />}
+        label="A different model per agent" hint="Cheap for reading, strong for writing." />
       {perAgent && (
         <div className="grid gap-2 sm:grid-cols-2">
           {AGENTS.map(([code, name]) => (
