@@ -42,7 +42,7 @@ export default async function Assistant() {
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {agents.map((a) => (
             <Link key={a.id} href={a.pack ? "/skill-gap" : a.custom ? `/agents/${a.id}` : "/agents"}
-              className="bg-inner-grad hover:border-[rgba(6,71,179,0.35)] rounded-lg border p-3 transition-colors">
+              className="bg-inner-grad hover:border-[rgba(0,0,0,0.35)] rounded-lg border p-3 transition-colors">
               <p className="text-[13.5px] font-medium">{a.name}
                 <span className="text-muted-foreground ml-1.5 text-[11px]">{a.pack ? "pack" : a.custom ? "yours" : "built-in"}</span>
               </p>
