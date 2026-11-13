@@ -134,10 +134,36 @@ def list_members(ctx: Ctx) -> Dict[str, Any]:
                         for m in _call(space.members, ctx.user_id, _ws(ctx))]}
 
 
+def _check_load(ctx: Ctx, assignee_id: str, extra: float, task_id: Optional[str] = None) -> None:
+    """Refuse to give a member more open work than two weeks of their free hours.
+
+    The refusal names who still has room, so the agent can pick someone else, split the task,
+    or leave it unassigned. `task_id`: a task being changed, whose current hours are not counted twice."""
+    members = space.members(ctx.user_id, _ws(ctx))
+    if len(members) < 2:
+        return      # alone, there is no one to share with: a real deadline always goes on the board
+    m = next((x for x in members if x["user_id"] == assignee_id), None)
+    if not m or not extra:
+        return
+    current = 0.0
+    if task_id:
+        t = next((x for x in space.tasks(ctx.user_id, _ws(ctx)) if x["id"] == task_id), None)
+        if t and t.get("assignee_id") == assignee_id and t.get("status") != "done":
+            current = float(t.get("estimate_hours") or 0)
+    limit = 2 * float(m["hours_per_week"])
+    after = float(m["open_hours"]) - current + float(extra)
+    if after > limit + 1e-9:
+        room = ", ".join(f"{x['name'] or x['email']} ({x['user_id']}): {max(0.0, 2 * x['hours_per_week'] - x['open_hours']):g} h free"
+                         for x in members)
+        raise ToolRefused(f"{m['name'] or 'this member'} would have {after:g} open hours, over their limit of {limit:g} "
+                          f"(two weeks of {m['hours_per_week']:g} free hours). Room left: {room}. Give it to someone "
+                          "with room, split it into smaller tasks, give it to an agent, or leave it unassigned.")
+
+
 @tool("create_task", "organizer",
       "Create a task, optionally assigned to a member (assignee_type user, their user_id) or an agent "
       "(assignee_type agent, its id). Give an estimate in hours and a due date (YYYY-MM-DD) when you can. "
-      "Returns a warning when a member would be over two weeks of their free hours.",
+      "In a group, refused when a member would go over two weeks of their free hours; the refusal says who has room.",
       {"title": {"type": "string"}, "description": {"type": "string"},
        "assignee_type": {"type": "string", "enum": ["user", "agent"]}, "assignee_id": {"type": "string"},
        "due_date": {"type": "string"}, "estimate_hours": {"type": "number", "minimum": 0, "maximum": 200},
@@ -145,6 +171,8 @@ def list_members(ctx: Ctx) -> Dict[str, Any]:
 def create_task(ctx: Ctx, title: str, description: str = "", assignee_type: Optional[str] = None,
                 assignee_id: Optional[str] = None, due_date: Optional[str] = None,
                 estimate_hours: Optional[float] = None, page_id: Optional[str] = None) -> Dict[str, Any]:
+    if assignee_type == "user" and assignee_id:
+        _check_load(ctx, assignee_id, float(estimate_hours or 0))
     t = _call(space.create_task, ctx.user_id, _ws(ctx), title, _by(ctx), description, assignee_type,
               assignee_id, due_date, estimate_hours, page_id, ctx.run_id)
     _artifact(ctx, "task", t["id"], t["title"])
@@ -163,6 +191,12 @@ def create_task(ctx: Ctx, title: str, description: str = "", assignee_type: Opti
        "due_date": {"type": "string"}, "estimate_hours": {"type": "number", "minimum": 0},
        "description": {"type": "string"}, "page_id": {"type": "string"}}, ["task_id"], writes=True)
 def update_task(ctx: Ctx, task_id: str, **fields: Any) -> Dict[str, Any]:
+    if fields.get("status") != "done" and (fields.get("assignee_type") == "user" or "estimate_hours" in fields):
+        t0 = next((x for x in space.tasks(ctx.user_id, _ws(ctx)) if x["id"] == task_id), None)
+        who = fields.get("assignee_id") or (t0 or {}).get("assignee_id")
+        kind = fields.get("assignee_type") or (t0 or {}).get("assignee_type")
+        if t0 and kind == "user" and who:
+            _check_load(ctx, who, float(fields.get("estimate_hours", t0.get("estimate_hours")) or 0), task_id)
     t = _call(space.update_task, ctx.user_id, task_id, _by(ctx), **fields)
     return {"task_id": t["id"], "status": t["status"]}
 
@@ -175,7 +209,34 @@ def review_page(ctx: Ctx, page_id: str) -> Dict[str, Any]:
     return _call(space.review, ctx.user_id, page_id)
 
 
+@tool("audit_claims", "reviewer",
+      "Check that each quoted source actually SUPPORTS the sentence that cites it (not just that the quote "
+      "exists): every cited sentence comes back supported, partial (says more than the quote) or "
+      "unsupported, with a reason. Read-only.", {"page_id": {"type": "string"}}, ["page_id"])
+def audit_claims(ctx: Ctx, page_id: str) -> Dict[str, Any]:
+    from core import academic
+    out = _call(academic.audit, ctx.user_id, page_id, ctx.cfg)
+    # what the agent needs to fix: the weak claims, not the whole list
+    weak = [{"sentence": c["sentence"], "sources": c["sources"], "verdict": c["verdict"], "reason": c["reason"]}
+            for c in out["claims"] if c["verdict"] != "supported"]
+    return {"page_id": page_id, "counts": out["counts"], "method": out["method"], "weak_claims": weak[:20],
+            "ok": out["ok"]}
+
+
+@tool("report_doctor", "reviewer",
+      "Check a page as an academic report: are the required sections there for its kind (praktikum: Tujuan, "
+      "Dasar Teori, Alat dan Bahan, Langkah Kerja, Hasil, Pembahasan, Kesimpulan; makalah; skripsi BAB I-V; "
+      "proposal), how long is it, and are its sources sound. Read-only.",
+      {"page_id": {"type": "string"}, "kind": {"type": "string", "enum": ["praktikum", "makalah", "skripsi", "proposal"]}},
+      ["page_id"])
+def report_doctor(ctx: Ctx, page_id: str, kind: str = "praktikum") -> Dict[str, Any]:
+    from core import academic
+    d = _call(academic.doctor, ctx.user_id, page_id, kind)
+    return {k: d[k] for k in ("kind", "missing_sections", "words", "pages_estimate", "citations",
+                              "missing_sources", "stale_sources", "uncited_paragraphs", "ok")}
+
+
 #: What a custom agent may be given: every workspace tool.
 WORKSPACE_TOOLS = ["list_collections", "list_files", "read_file", "search_workspace", "list_pages",
                    "read_page", "create_page", "update_page", "list_tasks", "list_members", "create_task",
-                   "update_task", "review_page"]
+                   "update_task", "review_page", "audit_claims", "report_doctor"]
