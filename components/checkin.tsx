@@ -21,7 +21,7 @@ export function CheckIn({ reminder }: { reminder: Reminder }) {
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm">{reminder.message}</p>
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="One line: what went well, what did not (optional)"
-            className="border-input text-fg w-full rounded-lg border bg-white px-3 py-1.5 text-[13.5px] outline-none focus-visible:border-[rgba(6,71,179,0.55)]" />
+            className="border-input text-fg w-full rounded-lg border bg-white px-3 py-1.5 text-[13.5px] outline-none focus-visible:border-[rgba(0,0,0,0.55)]" />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" disabled={busy} onClick={async () => {
               setBusy(true);
