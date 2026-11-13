@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ControlRow, Switch } from "@/components/ui/controls";
 import { call } from "@/lib/ai-config";
 
 export function Privacy({ consent, autoDelete }: { consent: boolean; autoDelete: boolean }) {
@@ -17,34 +18,22 @@ export function Privacy({ consent, autoDelete }: { consent: boolean; autoDelete:
 
   return (
     <div className="space-y-4">
-      <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" className="mt-1" checked={consent} disabled={busy}
-          onChange={(e) => set({ consent: e.target.checked })} />
-        <span>
-          <span className="font-medium">Let my own AI model read my documents</span>
-          <span className="text-muted-foreground block text-xs leading-relaxed">
-            Without this, the agents use rules only and nothing you uploaded leaves this server.
-            With it, document text is sent to the provider you connected above, under that provider&apos;s terms.
-          </span>
-        </span>
-      </label>
-      <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" className="mt-1" checked={autoDelete} disabled={busy}
-          onChange={(e) => set({ auto_delete: e.target.checked })} />
-        <span>
-          <span className="font-medium">Delete full text after analysis</span>
-          <span className="text-muted-foreground block text-xs leading-relaxed">
-            Only the short quotes that prove each skill are kept. Turn off to be able to read documents again.
-          </span>
-        </span>
-      </label>
+      <ControlRow control={<Switch checked={consent} disabled={busy} onCheckedChange={(v) => set({ consent: v })} />}
+        label="Let an AI model read my documents"
+        hint="Without this, the Skill Gap agents use rules only and nothing you uploaded leaves this server. With it, document text is sent to the model provider, under that provider's terms." />
+      <ControlRow control={<Switch checked={autoDelete} disabled={busy} onCheckedChange={(v) => set({ auto_delete: v })} />}
+        label="Delete full text after analysis"
+        hint="Only the short quotes that prove each skill are kept. Turn off to be able to read documents again." />
       <div className="border-t pt-4">
         <Button variant="destructive" disabled={busy} onClick={async () => {
-          if (!confirm("Delete every document, skill, plan and run stored about you? This cannot be undone.")) return;
+          if (!confirm("Delete your account and everything stored about you: documents, skills, plans, chats and your personal workspace? A group you own passes to its longest-standing member. This cannot be undone.")) return;
           setBusy(true);
-          try { await call("me/delete", { confirm: "delete" }); router.push("/"); router.refresh(); }
-          finally { setBusy(false); }
-        }}>Delete all my data</Button>
+          try {
+            await call("me/delete", { confirm: "delete" });
+            await fetch("/api/login", { method: "DELETE" });
+            router.push("/login"); router.refresh();
+          } finally { setBusy(false); }
+        }}>Delete my account and data</Button>
       </div>
     </div>
   );
