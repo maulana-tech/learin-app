@@ -189,7 +189,7 @@ export type Task = {
 };
 export type RosterAgent = {
   id: string; name: string; icon?: string | null; description: string; tools: string[];
-  builtin?: boolean; pack?: boolean; custom?: boolean; model?: string | null; shared?: boolean;
+  builtin?: boolean; pack?: boolean; custom?: boolean; model?: string | null; shared?: boolean; group?: string;
 };
 export type CustomAgent = {
   id: string; name: string; description: string; instructions: string; tools: string[]; model: string | null;
@@ -216,3 +216,12 @@ export async function currentWorkspace(): Promise<Workspace | null> {
   const picked = (await cookies()).get("learis_ws")?.value;
   return list.find((w) => w.id === picked) ?? list.find((w) => w.kind === "personal") ?? null;
 }
+
+export type AgentDetail = {
+  id: string; name: string; kind: "built-in" | "custom" | "pack"; description: string;
+  instructions: string | null; model: string | null; shared: boolean; installs: number; template_of: string | null;
+  tools: { name: string; description: string; writes: boolean }[];
+  stats: { tasks_done: number; pages: number; open_tasks: number; runs: number };
+  pages: { id: string; title: string; updated_at: string }[];
+  activity: { run_id: string; seq: number; agent: string; kind: string; message: string; at: string; request: string | null }[];
+};
