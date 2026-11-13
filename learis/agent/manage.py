@@ -18,10 +18,10 @@ HERE = pathlib.Path(__file__).resolve().parent
 #: Files that carry their own self-check in a __main__ block.
 CHECKS = [
     "core/config.py", "core/provenance.py", "core/identity.py", "core/store.py", "core/ai.py",
-    "core/registry.py", "core/worker.py", "core/jobs.py",
+    "core/registry.py", "core/worker.py", "core/jobs.py", "core/space.py",
     "engine/catalog.py", "engine/evidence.py", "engine/gap.py", "engine/roadmap.py",
     "engine/planner.py", "engine/profile.py", "sources/github.py",
-    "agents/team.py", "agents/loop.py", "mcp.py", "api.py --check",
+    "agents/team.py", "agents/loop.py", "agents/workspace.py", "mcp.py", "api.py --check",
 ]
 
 SAMPLES = HERE / "catalog" / "samples"
