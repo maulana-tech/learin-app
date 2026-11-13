@@ -3,6 +3,7 @@ import Link from "next/link";
 import { apiResult, when, who, type PageFull } from "@/app/lib";
 import { Chip } from "@/components/dort";
 import { ServiceDown } from "@/components/page-bits";
+import { FileLink } from "@/components/file-preview";
 import { PageEditor } from "./PageEditor";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +33,12 @@ export default async function OnePage({ params, searchParams }: {
           ) : (
             <ol className="mt-2 space-y-2">
               {p.sources.map((s) => (
-                <li key={s.n} className="bg-inner-grad rounded-lg border p-3">
-                  <p className="font-mono text-[11px]">[{s.n}] {s.file_name}</p>
-                  <p className="mt-1 text-[12.5px] leading-relaxed">&ldquo;{s.quote}&rdquo;</p>
+                <li key={s.n} className="bg-inner-grad hover:border-[rgba(0,0,0,0.3)] rounded-lg border p-3 transition-colors">
+                  <FileLink id={s.file_id} name={s.file_name} highlight={s.quote} className="block w-full">
+                    <span className="font-mono text-[11px]">[{s.n}] {s.file_name}</span>
+                    <span className="mt-1 block text-[12.5px] leading-relaxed">&ldquo;{s.quote}&rdquo;</span>
+                    <span className="text-muted-foreground mt-1.5 block text-[11px]">Open the file at this quote →</span>
+                  </FileLink>
                 </li>
               ))}
             </ol>
