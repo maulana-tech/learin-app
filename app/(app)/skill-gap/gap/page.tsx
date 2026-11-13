@@ -1,5 +1,7 @@
 import { apiResult, api, type Catalog, type Gap, type Impact, type Output, type Student } from "@/app/lib";
 import { AnalyseButton } from "@/components/analyse-button";
+import { Meter, Ring } from "@/components/bits";
+import { Chip } from "@/components/dort";
 import { EmptyState, Page, ServiceDown } from "@/components/page-bits";
 import { RadarChart } from "@/components/radar-chart";
 import { PageHeader } from "@/components/shell";
@@ -33,18 +35,20 @@ export default async function GapPage() {
       ) : (
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
           <section className="min-w-0 space-y-4">
-            <div className="bg-inner-grad glow-top rounded-lg border p-4 shadow-soft">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-[14px] font-medium">{g.role.name}</h2>
-                <span className="font-mono text-3xl font-medium tabular-nums">{g.match}%</span>
+            <div className="bg-card-grad glow-top rounded-xl border p-5 shadow-soft">
+              <div className="flex items-center gap-4">
+                <Ring value={g.match} size={92} label="match" />
+                <div className="min-w-0">
+                  <h2 className="text-[16px] font-semibold tracking-tight">{g.role.name}</h2>
+                  <p className="text-muted-foreground mt-1 text-[12px] leading-relaxed">{g.role.summary}</p>
+                </div>
               </div>
-              <p className="text-muted-foreground text-xs">{g.role.summary}</p>
               <RadarChart className="mx-auto mt-2 w-full max-w-sm"
                 axes={g.radar.map((r) => ({ label: r.category, value: r.score, baseline: before.get(r.category) }))} />
               <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                 {(["mastered", "partial", "missing"] as const).map((s) => (
-                  <div key={s} className="rounded-md border p-2">
-                    <p className="font-mono text-lg font-medium">{g.counts[s]}</p>
+                  <div key={s} className="bg-inner-grad rounded-lg border p-2.5">
+                    <p className="font-mono text-xl font-medium">{g.counts[s]}</p>
                     <p className="text-muted-foreground text-[11px]">{STATUS[s].label}</p>
                   </div>
                 ))}
@@ -52,18 +56,18 @@ export default async function GapPage() {
               {g.explanation && <p className="mt-3 text-sm leading-relaxed">{g.explanation}</p>}
             </div>
             {g.beyond_role.length > 0 && (
-              <div className="bg-inner-grad rounded-lg border p-4">
+              <div className="bg-inner-grad rounded-xl border p-4">
                 <h3 className="text-[14px] font-medium">Beyond this role</h3>
                 <p className="text-muted-foreground text-xs">Proven, not required here, still yours.</p>
-                <p className="mt-2 text-sm">{g.beyond_role.map((b) => b.name).join(" · ")}</p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">{g.beyond_role.map((b) => <Chip key={b.name}>{b.name}</Chip>)}</div>
               </div>
             )}
           </section>
 
           <section className="min-w-0">
-            <div className="overflow-x-auto rounded-lg border bg-white">
+            <div className="bg-card-grad overflow-x-auto rounded-xl border shadow-soft">
               <table className="w-full text-sm">
-                <thead className="text-muted-foreground border-b text-left text-xs">
+                <thead className="text-muted-foreground bg-inner-grad border-b text-left text-xs">
                   <tr>
                     <th className="p-3 font-medium">Skill</th>
                     <th className="p-3 font-medium">Status</th>
@@ -73,7 +77,7 @@ export default async function GapPage() {
                 </thead>
                 <tbody className="divide-y">
                   {g.skills.map((s) => (
-                    <tr key={s.skill_id} className="align-top">
+                    <tr key={s.skill_id} className="hover:bg-hover/40 align-top transition-colors">
                       <td className="p-3">
                         <p className="font-medium">{s.name}</p>
                         <p className="text-muted-foreground text-[11px]">{s.level === "core" ? "core" : "plus"} · {s.category}</p>
@@ -87,6 +91,7 @@ export default async function GapPage() {
                       <td className="p-3"><Confidence value={s.confidence} /></td>
                       <td className="p-3">
                         <p className="font-mono text-xs">{s.demand.posts}/{s.demand.of} posts</p>
+                        <Meter className="mt-1 w-20" value={s.demand.posts} max={Math.max(1, s.demand.of)} />
                         {s.demand.terms.length > 0 && (
                           <p className="text-muted-foreground text-[11px]">{s.demand.terms.slice(0, 3).join(", ")}</p>
                         )}
