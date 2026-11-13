@@ -45,6 +45,8 @@ PRESETS: Dict[str, Dict[str, str]] = {
                "model": "gemini-2.5-flash"},
     "openrouter": {"label": "OpenRouter", "base_url": "https://openrouter.ai/api/v1",
                    "model": "openai/gpt-4o-mini"},
+    "bedrock": {"label": "Amazon Bedrock", "base_url": "https://bedrock-mantle.ap-southeast-2.api.aws/v1",
+                "model": "deepseek.v3.2"},
     "ollama": {"label": "Ollama (local)", "base_url": "http://localhost:11434/v1", "model": "llama3.1"},
     "lmstudio": {"label": "LM Studio (local)", "base_url": "http://localhost:1234/v1", "model": "local-model"},
     "custom": {"label": "Custom (OpenAI-compatible)", "base_url": "", "model": ""},
@@ -57,7 +59,7 @@ NO_JSON_MODE = {"anthropic"}
 #: enough to let an agent pick its own tools. A local or custom model may or may
 #: not; the student can switch it on, and the agents fall back to their fixed
 #: order when a model will not call tools properly.
-TOOL_CAPABLE = {"openai", "anthropic", "gemini", "openrouter"}
+TOOL_CAPABLE = {"openai", "anthropic", "gemini", "openrouter", "bedrock"}
 for _k, _p in PRESETS.items():
     _p["tools"] = _k in TOOL_CAPABLE
 
@@ -121,7 +123,8 @@ def from_header(raw: Optional[str]) -> Optional[Config]:
 def server_config() -> Optional[Config]:
     if not CFG.server_ai:
         return None
-    return Config("custom", CFG.ai_base_url, CFG.ai_model, CFG.ai_api_key, {}, "server",
+    provider = "bedrock" if "bedrock-mantle." in CFG.ai_base_url else "custom"
+    return Config(provider, CFG.ai_base_url, CFG.ai_model, CFG.ai_api_key, {}, "server",
                   os.environ.get("LEARIS_AI_TOOLS", "1") == "1")
 
 
@@ -180,9 +183,16 @@ def _chat(cfg: Config, messages: List[dict], max_tokens: int, json_mode: bool,
         headers["X-Title"] = "LEARIS"
     req = urllib.request.Request(f"{cfg.base_url}/chat/completions",
                                  data=json.dumps(body).encode(), headers=headers, method="POST")
+    # A long answer (a whole page as a tool call) takes minutes on some models: the wait grows with the
+    # room the answer is given. One timed-out request is asked again once before giving up.
+    wait = min(600, max(TIMEOUT, 60 + max_tokens // 25))
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            data = json.loads(r.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=wait) as r:
+                data = json.loads(r.read().decode("utf-8"))
+        except (TimeoutError, socket.timeout):
+            with urllib.request.urlopen(req, timeout=wait) as r:
+                data = json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:400]
         if json_mode and e.code == 400 and "response_format" in detail and "response_format" in body:
@@ -305,14 +315,28 @@ class Turn:
     message: Dict[str, Any]          # the assistant message, to send back next round
 
 
+#: Room for one tool turn. A page with its quoted sources travels as the call's arguments, so a
+#: small limit cuts the call off half-written and it is lost (finish_reason "length").
+TOOL_TOKENS = int(os.environ.get("LEARIS_AI_TOOL_TOKENS", "6000"))
+
+#: Some models (DeepSeek) write their own call markup as text when a call is cut off.
+_LEAKED_CALL = re.compile(r"\s*<[｜|]\s*(DSML|tool[▁_ ]calls?[▁_ ]begin|tool_call)[\s\S]*$", re.I)
+
+
 def chat_with_tools(cfg: Config, messages: List[dict], tools: List[dict],
-                    max_tokens: int = 1500) -> Turn:
+                    max_tokens: Optional[int] = None) -> Turn:
     """One round of function calling. `tools` are OpenAI-style function specs.
 
     Arguments a model sends as broken JSON are not guessed at: the call comes
-    back with `error` set, and the loop tells the model so."""
-    data = _chat(cfg, messages, max_tokens, False, 0.1, tools)
-    msg = data["choices"][0].get("message") or {}
+    back with `error` set, and the loop tells the model so. A turn cut off by the
+    length limit before its call was complete is asked for once more with twice the room."""
+    limit = max_tokens or TOOL_TOKENS
+    data = _chat(cfg, messages, limit, False, 0.1, tools)
+    choice = data["choices"][0]
+    if choice.get("finish_reason") == "length" and not (choice.get("message") or {}).get("tool_calls"):
+        data = _chat(cfg, messages, min(limit * 2, 16000), False, 0.1, tools)
+        choice = data["choices"][0]
+    msg = choice.get("message") or {}
     calls: List[ToolCall] = []
     for i, tc in enumerate(msg.get("tool_calls") or []):
         fn = tc.get("function") or {}
@@ -332,12 +356,13 @@ def chat_with_tools(cfg: Config, messages: List[dict], tools: List[dict],
                 err = f"arguments are not valid JSON ({e})"
         calls.append(ToolCall(str(tc.get("id") or f"call_{i}"), str(fn.get("name") or ""),
                               args, raw, err))
-    echo: Dict[str, Any] = {"role": "assistant", "content": _text(data) or None}
+    text = _LEAKED_CALL.sub("", _text(data) or "").strip()
+    echo: Dict[str, Any] = {"role": "assistant", "content": text or None}
     if calls:
         echo["tool_calls"] = [{"id": c.id, "type": "function",
                                "function": {"name": c.name, "arguments": c.raw_arguments}}
                               for c in calls]
-    return Turn(_text(data), calls, echo)
+    return Turn(text, calls, echo)
 
 
 def test(cfg: Config) -> Dict[str, Any]:
