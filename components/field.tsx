@@ -22,7 +22,3 @@ const control = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[
 export function TextArea(props: React.ComponentProps<"textarea">) {
   return <textarea {...props} className={cn(control, props.className)} />;
 }
-
-export function Select(props: React.ComponentProps<"select">) {
-  return <select {...props} className={cn(control, "h-9 py-0", props.className)} />;
-}
