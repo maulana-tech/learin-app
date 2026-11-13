@@ -53,7 +53,7 @@ from urllib.parse import parse_qs, urlparse
 
 import mcp
 from agents import team
-from core import ai, identity, registry, store
+from core import ai, identity, registry, space, store
 from core.jobs import SCHEDULER
 from core.worker import POOL
 from core.config import CFG, bind_target
@@ -105,6 +105,30 @@ def login(_m, b, _h):
     except NotAuthorised as e:
         return 401, {"error": str(e)}
     return 200, {"token": identity.issue_token(u),
+                 "user": {"name": u.name, "email": u.email, "role": u.role}}
+
+
+@route("POST", r"/signup")
+def signup(_m, b, _h):
+    """Anyone may create a student account: a friend invited to a group needs
+    one before the invite link means anything. LEARIS_SIGNUP=0 closes it."""
+    if os.environ.get("LEARIS_SIGNUP", "1") == "0":
+        return 403, {"error": "sign-up is closed on this deployment"}
+    email = str(b.get("email") or "").strip().lower()
+    name = str(b.get("name") or "").strip()[:80]
+    password = str(b.get("password") or "")
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return 400, {"error": "give a valid email address"}
+    if not name:
+        return 400, {"error": "give your name"}
+    if len(password) < 8:
+        return 400, {"error": "the password needs at least 8 characters"}
+    try:
+        u = identity.add_user(email, name, "student", password)
+    except Exception:                                              # noqa: BLE001
+        return 409, {"error": "an account with that email already exists"}
+    space.personal(u.id)
+    return 201, {"token": identity.issue_token(u),
                  "user": {"name": u.name, "email": u.email, "role": u.role}}
 
 
@@ -265,13 +289,28 @@ def analyze(_m, _b, h):
 
 
 @route("GET", r"/runs")
-def list_runs(_m, _b, h):
-    return 200, {"runs": store.runs(_user(h).id)}
+def list_runs(_m, b, h):
+    u = _user(h)
+    if b.get("ws"):
+        space.role_in(u.id, b["ws"])
+        rows = store.runs_in_workspace(b["ws"])
+    else:
+        rows = store.runs(u.id, 40)
+    if b.get("kind"):
+        rows = [r for r in rows if (r.get("kind") or "pack") == b["kind"]]
+    return 200, {"runs": rows}
 
 
 @route("GET", r"/runs/([A-Za-z0-9_]+)")
 def one_run(m, _b, h):
-    r = store.run(m.group(1), _user(h).id)
+    u = _user(h)
+    r = store.run(m.group(1))
+    # Yours, or a run in a workspace you are a member of.
+    if r and r["user_id"] != u.id:
+        if not r.get("workspace_id"):
+            r = None
+        else:
+            space.role_in(u.id, r["workspace_id"])
     return (200, r) if r else (404, {"error": "no such run"})
 
 
@@ -400,10 +439,14 @@ def delete_me(_m, b, h):
     return 200, {"deleted": True}
 
 
+import workspace_api  # noqa: E402  (registers its routes on this router)
+
+workspace_api.register(route, _user)
+
 # ----------------------------------------------------------------- server
-PUBLIC = {("GET", "/health"), ("POST", "/login")}
+PUBLIC = {("GET", "/health"), ("POST", "/login"), ("POST", "/signup")}
 CORS = {"Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "content-type,authorization,accept,x-learis-ai",
+        "Access-Control-Allow-Headers": "content-type,authorization,accept,x-learis-ai,x-learis-ws",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"}
 
 
@@ -450,6 +493,12 @@ class Handler(BaseHTTPRequestHandler):
                     code, data = fn(found, body, self.headers)
                 except NotAuthorised as e:
                     return self._send(401, {"error": str(e)})
+                except space.Denied as e:
+                    return self._send(403, {"error": str(e)})
+                except space.NotFound as e:
+                    return self._send(404, {"error": str(e)})
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
                 except Exception as e:                               # noqa: BLE001
                     traceback.print_exc()
                     return self._send(500, {"error": f"{type(e).__name__}: {e}"})
@@ -482,7 +531,15 @@ def demo() -> None:
     def call(method: str, path: str, body: Dict[str, Any] = None, headers=h):
         for m, pattern, fn in ROUTES:
             if m == method and pattern.match(path):
-                return fn(pattern.match(path), body or {}, headers)
+                # The same mapping Handler._dispatch applies.
+                try:
+                    return fn(pattern.match(path), body or {}, headers)
+                except space.Denied as e:
+                    return 403, {"error": str(e)}
+                except space.NotFound as e:
+                    return 404, {"error": str(e)}
+                except ValueError as e:
+                    return 400, {"error": str(e)}
         raise AssertionError(f"no route {method} {path}")
 
     # Every route but the public two refuses a request without a session.
@@ -497,6 +554,10 @@ def demo() -> None:
             pass
 
     assert call("GET", "/health")[0] == 200
+    assert call("POST", "/signup", {"email": "baru@kampus.ac.id", "name": "Baru", "password": "short"})[0] == 400
+    code, su = call("POST", "/signup", {"email": "baru@kampus.ac.id", "name": "Baru", "password": "pw-long-enough"})
+    assert code == 201 and su["token"]
+    assert call("POST", "/signup", {"email": "baru@kampus.ac.id", "name": "B", "password": "pw-long-enough"})[0] == 409
     assert call("POST", "/login", {"email": "sari@kampus.ac.id", "password": "pw-for-the-check"})[0] == 200
     assert call("POST", "/login", {"email": "sari@kampus.ac.id", "password": "no"})[0] == 401
     cat = call("GET", "/catalog")[1]
@@ -551,6 +612,45 @@ def demo() -> None:
     assert call("GET", "/reminders")[1]["reminders"][0]["id"] == rem
     assert call("POST", f"/reminders/{rem}/done", {"note": "ok"})[0] == 200
     assert call("POST", f"/reminders/{rem}/done", {}, headers=h2)[0] == 404
+    # ---- the workspace: a group, an invite, shared files, pages, tasks, agents
+    personal_ws = call("GET", "/workspaces")[1]["workspaces"][0]
+    assert personal_ws["kind"] == "personal"
+    code, g = call("POST", "/workspaces", {"name": "Kelompok Basis Data", "purpose": "Tugas besar"})
+    assert code == 201
+    tok = call("POST", f"/workspaces/{g['id']}/invite")[1]["token"]
+    assert call("GET", f"/invites/{tok}", headers=h2)[1]["name"] == "Kelompok Basis Data"
+    assert call("GET", "/files", {"ws": g["id"]}, headers=h2)[0] == 403, "not a member before accepting"
+    assert call("POST", f"/invites/{tok}/accept", headers=h2)[0] == 200
+    code, f = call("POST", "/files", {"ws": g["id"], "name": "modul-1.txt", "collection": "Basis Data",
+                                      "text": "Normalisasi mengurangi redundansi data dalam tabel relasional."},
+                   headers=h2)
+    assert code == 201 and call("GET", "/collections", {"ws": g["id"]})[1]["collections"][0]["name"] == "Basis Data"
+    bad_src = call("POST", "/pages", {"ws": g["id"], "title": "x", "content": "y",
+                                      "sources": [{"file_id": f["id"], "quote": "not in the file"}]})
+    assert bad_src[0] == 400, "a page cannot cite what the file does not say"
+    code, pg = call("POST", "/pages", {"ws": g["id"], "title": "Catatan", "content": "Normalisasi [1].",
+                                       "sources": [{"file_id": f["id"], "quote": "Normalisasi mengurangi redundansi"}]})
+    assert code == 201 and call("GET", f"/pages/{pg['id']}/review")[1]["ok"]
+    assert call("GET", f"/pages/{pg['id']}", headers={"Authorization": h["Authorization"]})[0] == 200
+    code, t = call("POST", "/tasks", {"ws": g["id"], "title": "Buat ERD", "assignee_type": "user",
+                                      "assignee_id": other.id, "estimate_hours": 2})
+    assert code == 201
+    assert call("POST", f"/tasks/{t['id']}", {"status": "done"}, headers=h2)[1]["status"] == "done"
+    code, ag = call("POST", "/workspace-agents", {"ws": g["id"], "name": "Quiz Maker", "description": "Quizzes",
+                    "instructions": "Write a short quiz page from the course files, with sources.",
+                    "tools": ["list_files", "read_file", "create_page"], "shared": True})
+    assert code == 201 and any(a["id"] == ag["id"] for a in call("GET", "/gallery")[1]["agents"])
+    assert call("POST", "/workspace-agents", {"ws": g["id"], "name": "Bad", "description": "x",
+                "instructions": "long enough instructions here", "tools": ["rm_rf"]})[0] == 400
+    assert call("POST", f"/gallery/{ag['id']}/install", {"ws": personal_ws["id"]})[0] == 201
+    assert len(call("GET", "/tools")[1]["tools"]) >= 10
+    assert call("POST", "/ask", {"ws": g["id"], "request": "Ringkas modul"})[0] == 400, "no tool-calling model"
+    gi = call("GET", "/group-impact", {"ws": g["id"]})[1]
+    assert gi["members"] == 2 and gi["tasks_done_by_people"] == 1
+    code, rep_page = call("POST", "/group-report", {"ws": g["id"]})
+    assert code == 201 and "Kelompok Basis Data" in rep_page["title"]
+    assert call("POST", f"/workspaces/{g['id']}/members/{u.id}/remove", headers=h2)[0] in (400, 403)
+
     assert call("POST", "/me/delete", {})[0] == 400
     assert call("POST", "/me/delete", {"confirm": "delete"})[1]["deleted"]
     assert call("GET", "/documents")[1]["documents"] == []
