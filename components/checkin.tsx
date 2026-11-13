@@ -15,13 +15,13 @@ export function CheckIn({ reminder }: { reminder: Reminder }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   return (
-    <div className="rounded-lg border border-sky-500/40 bg-sky-500/5 p-4">
+    <div className="bg-inner-grad glow-top rounded-lg border p-4 shadow-soft">
       <div className="flex items-start gap-3">
-        <CalendarCheck className="mt-0.5 size-4 shrink-0 text-sky-600" />
+        <CalendarCheck className="text-brand mt-0.5 size-4 shrink-0" />
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm">{reminder.message}</p>
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="One line: what went well, what did not (optional)"
-            className="border-input w-full rounded-lg border bg-transparent px-2.5 py-1.5 text-sm dark:bg-input/30" />
+            className="border-input text-fg w-full rounded-lg border bg-white px-3 py-1.5 text-[13.5px] outline-none focus-visible:border-[rgba(6,71,179,0.55)]" />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" disabled={busy} onClick={async () => {
               setBusy(true);
