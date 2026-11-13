@@ -33,10 +33,10 @@ export default async function GapPage() {
       ) : (
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
           <section className="min-w-0 space-y-4">
-            <div className="rounded-lg border p-4">
+            <div className="bg-inner-grad glow-top rounded-lg border p-4 shadow-soft">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">{g.role.name}</h2>
-                <span className="font-mono text-3xl font-semibold tabular-nums">{g.match}%</span>
+                <h2 className="text-[14px] font-medium">{g.role.name}</h2>
+                <span className="font-mono text-3xl font-medium tabular-nums">{g.match}%</span>
               </div>
               <p className="text-muted-foreground text-xs">{g.role.summary}</p>
               <RadarChart className="mx-auto mt-2 w-full max-w-sm"
@@ -44,7 +44,7 @@ export default async function GapPage() {
               <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                 {(["mastered", "partial", "missing"] as const).map((s) => (
                   <div key={s} className="rounded-md border p-2">
-                    <p className="font-mono text-lg font-semibold">{g.counts[s]}</p>
+                    <p className="font-mono text-lg font-medium">{g.counts[s]}</p>
                     <p className="text-muted-foreground text-[11px]">{STATUS[s].label}</p>
                   </div>
                 ))}
@@ -52,8 +52,8 @@ export default async function GapPage() {
               {g.explanation && <p className="mt-3 text-sm leading-relaxed">{g.explanation}</p>}
             </div>
             {g.beyond_role.length > 0 && (
-              <div className="rounded-lg border p-4">
-                <h3 className="text-sm font-semibold">Beyond this role</h3>
+              <div className="bg-inner-grad rounded-lg border p-4">
+                <h3 className="text-[14px] font-medium">Beyond this role</h3>
                 <p className="text-muted-foreground text-xs">Proven, not required here, still yours.</p>
                 <p className="mt-2 text-sm">{g.beyond_role.map((b) => b.name).join(" · ")}</p>
               </div>
@@ -61,7 +61,7 @@ export default async function GapPage() {
           </section>
 
           <section className="min-w-0">
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border bg-white">
               <table className="w-full text-sm">
                 <thead className="text-muted-foreground border-b text-left text-xs">
                   <tr>
