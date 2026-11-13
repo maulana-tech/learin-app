@@ -12,7 +12,7 @@ import { fileText } from "@/lib/pdf-text";
 import { cn } from "@/lib/utils";
 
 const KINDS = ["syllabus", "transcript", "project", "portfolio", "cv", "other"];
-const field = "border-input w-full rounded-lg border bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+const field = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(6,35,89,0.28)] focus-visible:border-[rgba(6,71,179,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(6,71,179,0.08)]";
 
 type Mode = "file" | "paste" | "github";
 
@@ -70,7 +70,7 @@ export function AddEvidence() {
   ];
 
   return (
-    <div className="rounded-lg border p-4">
+    <div className="bg-inner-grad rounded-lg border p-4">
       <div className="flex flex-wrap gap-1" role="tablist">
         {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={mode === t.id}
@@ -96,7 +96,7 @@ export function AddEvidence() {
           <label className={cn("flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-6 text-center",
             busy && "pointer-events-none opacity-60")}>
             <FileUp className="text-muted-foreground size-5" />
-            <span className="text-sm font-medium">{busy ? "Reading…" : "Choose PDF, TXT or Markdown files"}</span>
+            <span className="text-[14px] font-medium">{busy ? "Reading…" : "Choose PDF, TXT or Markdown files"}</span>
             <span className="text-muted-foreground text-xs">PDFs are read in your browser; only their text is sent.</span>
             <input type="file" multiple accept=".pdf,.txt,.md,.markdown,text/plain,application/pdf"
               className="sr-only" onChange={(e) => onFiles(e.target.files)} />
@@ -125,7 +125,7 @@ export function AddEvidence() {
           </>
         )}
       </form>
-      {msg && <p className={cn("mt-3 text-sm", msg.ok ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>{msg.text}</p>}
+      {msg && <p className={cn("mt-3 text-sm", msg.ok ? "text-ok" : "text-destructive")}>{msg.text}</p>}
     </div>
   );
 }
