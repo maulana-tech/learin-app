@@ -27,9 +27,18 @@ export async function pdfText(file: File, maxPages = 30): Promise<string> {
   return pages.join("\n\n").trim();
 }
 
+/** The agent service keeps up to this many characters per file or document. */
+export const MAX_CHARS = 200_000;
+
+/** The text of a file, refused here (not after a long upload) when it is empty or too long. */
 export async function fileText(file: File): Promise<string> {
-  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-    return pdfText(file);
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  const text = isPdf ? await pdfText(file) : (await file.text()).trim();
+  if (text.length < 20) {
+    throw new Error(isPdf ? "no readable text (a scanned PDF needs OCR first)" : "the file has no readable text");
   }
-  return (await file.text()).trim();
+  if (text.length > MAX_CHARS) {
+    throw new Error(`too long: ${text.length.toLocaleString("en")} characters, the limit is ${MAX_CHARS.toLocaleString("en")}. Split it into parts.`);
+  }
+  return text;
 }
