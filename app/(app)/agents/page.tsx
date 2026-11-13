@@ -25,7 +25,7 @@ function Card({ a }: { a: RosterAgent }) {
     </>
   );
   const cls = "bg-inner-grad block rounded-lg border p-4";
-  return href ? <Link href={href} className={`${cls} hover:border-[rgba(6,71,179,0.35)]`}>{body}</Link> : <div className={cls}>{body}</div>;
+  return href ? <Link href={href} className={`${cls} hover:border-[rgba(0,0,0,0.35)]`}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
 export default async function AgentsPage() {
