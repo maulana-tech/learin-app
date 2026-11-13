@@ -30,7 +30,7 @@ export function ProfileText({ initial }: { initial: string }) {
     <div className="space-y-2">
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={7}
         placeholder="Paste your LinkedIn About, headline or CV text. LinkedIn has no public API, so pasting is the honest way."
-        className="border-input w-full rounded-lg border bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30" />
+        className="border-input w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
       <div className="flex items-center gap-2">
         <Button variant="outline" disabled={busy} onClick={async () => {
           setBusy(true);
