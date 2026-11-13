@@ -28,6 +28,7 @@ class Ctx:
     user_id: str
     run_id: Optional[str] = None
     agent: str = ""
+    workspace_id: Optional[str] = None
     cfg: Optional[ai.Config] = None
     saved: Set[str] = field(default_factory=set)       # outputs written this run
     notes: Dict[str, Any] = field(default_factory=dict)
@@ -88,14 +89,17 @@ class ToolRefused(Exception):
 MAX_RESULT = 6000
 
 
-def run(name: str, args: Dict[str, Any], ctx: Ctx, agent: Optional[str] = None) -> Dict[str, Any]:
+def run(name: str, args: Dict[str, Any], ctx: Ctx, agent: Optional[str] = None,
+        allowed: Optional[Set[str]] = None) -> Dict[str, Any]:
     """Run one tool. Always returns a JSON-able dict; never raises for the
-    model's mistakes. `agent`, when given, restricts the call to that agent's
-    own tools."""
+    model's mistakes. `agent` restricts the call to that agent's own tools;
+    `allowed` to an explicit list (a custom agent's)."""
     t = get(name)
     if t is None:
         return {"error": f"unknown tool '{name}'"}
-    if agent and t.agent != agent:
+    if allowed is not None and name not in allowed:
+        return {"error": f"'{name}' is not one of your tools"}
+    if allowed is None and agent and t.agent != agent:
         return {"error": f"'{name}' belongs to the {t.agent} agent, not to you"}
     problems = ai.validate(args, t.params)
     extra = set(args) - set(t.params["properties"])
@@ -124,7 +128,8 @@ def demo() -> None:
     tools = all_tools()
     assert tools, "no tools registered"
     for t in tools.values():
-        assert t.agent in ("evidence", "roadmap", "planner", "profile"), t.name
+        assert t.agent in ("evidence", "roadmap", "planner", "profile",
+                           "reader", "writer", "organizer", "reviewer", "orchestrator"), t.name
         assert t.description and t.params["type"] == "object"
         assert set(t.params["required"]) <= set(t.params["properties"]), t.name
     ctx = Ctx("usr_registry_check")
