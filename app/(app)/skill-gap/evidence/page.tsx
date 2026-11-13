@@ -43,25 +43,25 @@ export default async function EvidencePage() {
 
         <div className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">{list.length} document(s){pending ? ` · ${pending} not read yet` : ""}</h2>
+            <h2 className="text-[14px] font-medium">{list.length} document(s){pending ? ` · ${pending} not read yet` : ""}</h2>
             {list.length > 0 && <Reanalyse />}
           </div>
           {list.length === 0 ? (
             <EmptyState title="No evidence yet"
               body="Start with the syllabus of a course you liked, your transcript, or the README of something you built. Three documents are enough for a first radar." />
           ) : (
-            <ul className="divide-y rounded-lg border">
+            <ul className="divide-y rounded-lg border bg-white">
               {list.map((d) => (
                 <li key={d.id} className="flex items-start gap-3 p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{d.title}</p>
+                    <p className="truncate text-[14px] font-medium">{d.title}</p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
                       {KIND_LABEL[d.kind] ?? d.kind} · {d.chars.toLocaleString()} chars · added {when(d.uploaded_at)}
                     </p>
                     <p className="mt-1 text-xs">
                       {d.analysed_at
-                        ? <span className="text-emerald-700 dark:text-emerald-400">read · {d.skills} skill(s) proven{d.text_kept ? "" : " · text deleted, quotes kept"}</span>
-                        : <span className="text-amber-700 dark:text-amber-400">waiting for the agents</span>}
+                        ? <span className="text-ok">read · {d.skills} skill(s) proven{d.text_kept ? "" : " · text deleted, quotes kept"}</span>
+                        : <span className="text-warn">waiting for the agents</span>}
                     </p>
                   </div>
                   {d.source_url && (
@@ -74,7 +74,7 @@ export default async function EvidencePage() {
             </ul>
           )}
           {list.length > 0 && (
-            <div className="rounded-lg border p-4"><AnalyseButton label={pending ? "Read new evidence" : "Run the agents again"} /></div>
+            <div className="bg-inner-grad rounded-lg border p-4"><AnalyseButton label={pending ? "Read new evidence" : "Run the agents again"} /></div>
           )}
         </div>
       </div>
