@@ -2,7 +2,7 @@ import { apiResult, type Skill } from "@/app/lib";
 import { EmptyState, Page, ServiceDown } from "@/components/page-bits";
 import { PageHeader } from "@/components/shell";
 import { Confidence, KIND_LABEL, MethodTag, StatusPill, statusOf } from "@/components/skill-bits";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/dort";
 
 export const dynamic = "force-dynamic";
 
@@ -32,15 +32,15 @@ export default async function SkillsPage() {
         <div className="mt-6 space-y-8">
           {[...byCat.entries()].map(([cat, list]) => (
             <section key={cat}>
-              <h2 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">{cat}</h2>
+              <h2 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{cat}</h2>
               <ul className="mt-2 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {list.map((s) => (
-                  <li key={s.skill_id} className="min-w-0 rounded-lg border p-4">
+                  <li key={s.skill_id} className="bg-inner-grad min-w-0 rounded-lg border p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium">{s.name}</span>
+                      <span className="text-[14px] font-medium">{s.name}</span>
                       <StatusPill status={statusOf(s.confidence)} />
-                      {s.hidden && <Badge variant="outline" className="text-[10px]">hidden skill</Badge>}
-                      {s.verified && <Badge variant="outline" className="text-[10px]">verified</Badge>}
+                      {s.hidden && <Chip tone="info">hidden skill</Chip>}
+                      {s.verified && <Chip tone="ok">verified</Chip>}
                     </div>
                     <Confidence value={s.confidence} className="mt-2" />
                     <ul className="mt-3 space-y-2">
