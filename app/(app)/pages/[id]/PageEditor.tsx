@@ -11,6 +11,7 @@ import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { call } from "@/lib/ai-config";
+import { ClaimCheck, ExportWord } from "@/components/academic";
 
 export function PageEditor({ page, startEditing }: { page: PageFull; startEditing: boolean }) {
   const router = useRouter();
@@ -49,6 +50,8 @@ export function PageEditor({ page, startEditing }: { page: PageFull; startEditin
             <Button variant="outline" onClick={async () => setReview(await call<PageReview>(`pages/${page.id}/review`))}>
               <ShieldCheck className="size-4" /> Review sources
             </Button>
+            <ClaimCheck pageId={page.id} />
+            <ExportWord pageId={page.id} title={page.title} />
             <Button variant="ghost" size="icon" aria-label="Delete page" onClick={async () => {
               if (!confirm(`Delete "${page.title}"?`)) return;
               await call(`pages/${page.id}/delete`, {});
@@ -80,7 +83,7 @@ export function PageEditor({ page, startEditing }: { page: PageFull; startEditin
             placeholder="Markdown. Cite a source as [1]." />
         </div>
       ) : (
-        <article className="max-w-3xl text-[14.5px] leading-relaxed">
+        <article className="bg-card-grad rounded-lg border px-5 py-5 text-[14.5px] leading-relaxed shadow-soft md:px-8 md:py-7">
           {page.content ? <Markdown>{page.content}</Markdown> : <p className="text-muted-foreground">Empty page.</p>}
         </article>
       )}
