@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { call, maskKey, saveAI, useAIConfig, type AIConfig } from "@/lib/ai-config";
 import { cn } from "@/lib/utils";
 
-const field = "border-input w-full rounded-lg border bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+const field = "border-input w-full rounded-lg border bg-white px-3 py-2 text-[13.5px] text-fg outline-none placeholder:text-muted-foreground/80 hover:border-[rgba(6,35,89,0.28)] focus-visible:border-[rgba(6,71,179,0.55)] focus-visible:ring-3 focus-visible:ring-[rgba(6,71,179,0.08)]";
 const AGENTS = [["evidence", "Skill Evidence"], ["roadmap", "Roadmap"], ["planner", "Planner"], ["profile", "Profile"]];
 
 export function AISettings({ presets }: { presets: Record<string, Preset> }) {
@@ -121,7 +121,7 @@ function Form({ presets, saved }: { presets: Record<string, Preset>; saved: AICo
           </Button>
         )}
       </div>
-      {msg && <p className={cn("text-sm", msg.ok ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>{msg.text}</p>}
+      {msg && <p className={cn("text-sm", msg.ok ? "text-ok" : "text-destructive")}>{msg.text}</p>}
       <p className="text-muted-foreground text-xs">
         {saved ? <>Connected: <span className="font-mono">{saved.model}</span> · key {maskKey(saved.api_key)}</> : "Not connected."}{" "}
         Your key stays in this browser. It is sent with each request that needs it and never stored on our server or written to a log.
