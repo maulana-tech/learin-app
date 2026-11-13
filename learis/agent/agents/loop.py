@@ -13,7 +13,7 @@ or stops early, the team (agents/team.py) finishes the job the fixed way.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from core import ai, registry
 from core.registry import Ctx
@@ -86,17 +86,29 @@ def _brief_result(res: Dict[str, Any]) -> str:
     return ", ".join(bits) or "ok"
 
 
-def run(r, cfg: ai.Config, agent: str, ctx: Ctx, task: str) -> Dict[str, Any]:
-    """Run one agent's loop. Returns {calls, rounds, final, stopped?, error?}."""
+def run(r, cfg: ai.Config, agent: str, ctx: Ctx, task: str, system: Optional[str] = None,
+        tools: Optional[List[str]] = None, label: Optional[str] = None,
+        model: Optional[str] = None, max_rounds: int = MAX_ROUNDS) -> Dict[str, Any]:
+    """Run one agent's loop. Returns {calls, rounds, final, stopped?, error?}.
+
+    A built-in agent brings its own system prompt and tools; a custom agent
+    (agents/workspace.py) passes its instructions, its chosen tools and,
+    optionally, its own model. `label` is the name its steps show under."""
     ctx.agent = agent
-    specs = [t.spec() for t in registry.tools_for(agent)]
-    messages = [{"role": "system", "content": SYSTEM[agent] + RULES},
+    label = label or agent
+    allowed = set(tools) if tools is not None else None
+    chosen = [registry.get(n) for n in tools] if tools is not None else registry.tools_for(agent)
+    specs = [t.spec() for t in chosen if t]
+    messages = [{"role": "system", "content": (system or SYSTEM[agent]) + RULES},
                 {"role": "user", "content": task}]
     calls = 0
-    model = cfg.for_agent(agent)
-    for rnd in range(1, MAX_ROUNDS + 1):
+    m = cfg.for_agent(agent)
+    if model:
+        from dataclasses import replace
+        m = replace(m, model=model)
+    for rnd in range(1, max_rounds + 1):
         try:
-            turn = ai.chat_with_tools(model, messages, specs)
+            turn = ai.chat_with_tools(m, messages, specs)
         except ai.AIError as e:
             return {"calls": calls, "rounds": rnd, "final": "", "error": str(e)}
         messages.append(turn.message)
@@ -104,11 +116,12 @@ def run(r, cfg: ai.Config, agent: str, ctx: Ctx, task: str) -> Dict[str, Any]:
             return {"calls": calls, "rounds": rnd, "final": turn.text}
         for c in turn.calls:
             calls += 1
-            res = {"error": c.error} if c.error else registry.run(c.name, c.arguments, ctx, agent=agent)
-            r.say(agent, "tool", f"{c.name}({_brief_args(c.arguments)}) → {_brief_result(res)}",
+            res = ({"error": c.error} if c.error
+                   else registry.run(c.name, c.arguments, ctx, agent=agent, allowed=allowed))
+            r.say(label, "tool", f"{c.name}({_brief_args(c.arguments)}) → {_brief_result(res)}",
                   {"tool": c.name, "ok": "error" not in res})
             messages.append({"role": "tool", "tool_call_id": c.id, "content": registry.shown(res)})
-    return {"calls": calls, "rounds": MAX_ROUNDS, "final": "", "stopped": "round limit"}
+    return {"calls": calls, "rounds": max_rounds, "final": "", "stopped": "round limit"}
 
 
 def demo() -> None:
