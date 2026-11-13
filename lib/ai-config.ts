@@ -104,3 +104,79 @@ export function useAIConfig(): AIConfig | null {
     }
   }, [raw]);
 }
+
+/* ------------------------------------------------------- saved models */
+
+/* Several connections can be kept in this browser; one of them (or the
+ * deployment's own model, when none is picked) is active. The active one is the
+ * `learis.ai` entry above, so everything that already reads it keeps working. */
+
+const LIST = "learis.ai.models";
+
+export type SavedModel = AIConfig & { id: string; name: string };
+
+export const sameModel = (a: AIConfig | null, b: AIConfig | null) =>
+  !!a && !!b && a.provider === b.provider && a.model === b.model && a.base_url === b.base_url && a.api_key === b.api_key;
+
+function readList(): SavedModel[] {
+  try {
+    const raw = localStorage.getItem(LIST);
+    return raw ? (JSON.parse(raw) as SavedModel[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeList(list: SavedModel[]) {
+  try {
+    localStorage.setItem(LIST, JSON.stringify(list));
+    window.dispatchEvent(new Event(EVENT));
+  } catch {
+    // see saveAI
+  }
+}
+
+function listSnapshot(): string | null {
+  try {
+    return localStorage.getItem(LIST);
+  } catch {
+    return null;
+  }
+}
+
+/** Saved connections, plus the active one if it was set before the list existed. */
+export function useSavedModels(): SavedModel[] {
+  const raw = useSyncExternalStore(subscribe, listSnapshot, () => null);
+  const active = useAIConfig();
+  return useMemo(() => {
+    let list: SavedModel[] = [];
+    try { list = raw ? (JSON.parse(raw) as SavedModel[]) : []; } catch { list = []; }
+    if (active && !list.some((m) => sameModel(m, active))) {
+      list = [{ ...active, id: "current", name: active.model }, ...list];
+    }
+    return list;
+  }, [raw, active]);
+}
+
+/** Save a connection and make it the active one. */
+export function addModel(cfg: AIConfig, name?: string, activate = true): SavedModel {
+  const list = readList().filter((m) => !sameModel(m, cfg));
+  const m: SavedModel = { ...cfg, id: `m_${Date.now().toString(36)}`, name: name || cfg.model };
+  writeList([m, ...list].slice(0, 12));
+  if (activate) saveAI(cfg);
+  return m;
+}
+
+/** Use a saved connection, or null for the deployment's own model. */
+export function selectModel(m: AIConfig | null) {
+  if (m) {
+    const { id: _id, name: _name, ...cfg } = m as SavedModel;
+    void _id; void _name;
+    saveAI(cfg);
+  } else saveAI(null);
+}
+
+export function removeModel(m: SavedModel) {
+  writeList(readList().filter((x) => x.id !== m.id && !sameModel(x, m)));
+  if (sameModel(loadAI(), m)) saveAI(null);
+}
