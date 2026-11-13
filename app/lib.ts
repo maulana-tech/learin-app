@@ -121,12 +121,14 @@ export async function apiResult<T>(path: string): Promise<
   { data: T; error: null } | { data: null; error: string }
 > {
   const { cookies } = await import("next/headers");
-  const token = (await cookies()).get("learis_session")?.value;
+  const jar = await cookies();
+  const token = jar.get("learis_session")?.value;
+  const ws = jar.get("learis_ws")?.value;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (ws) headers["X-Learis-Ws"] = ws;
   try {
-    const r = await fetch(`${UPSTREAM}/${path}`, {
-      cache: "no-store",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
+    const r = await fetch(`${UPSTREAM}/${path}`, { cache: "no-store", headers });
     const body = await r.text();
     if (!r.ok) {
       let error = `The agent service returned HTTP ${r.status}`;
@@ -153,3 +155,64 @@ export async function me(): Promise<Me | null> {
 }
 
 export const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+/* --------------------------------------------------------------- workspace */
+export type Workspace = {
+  id: string; name: string; kind: "personal" | "group"; purpose: string | null; owner_id: string;
+  created_at: string; role?: string; members?: number;
+};
+export type Member = {
+  user_id: string; name: string | null; email: string | null; role: string; hours_per_week: number;
+  open_hours: number; tasks_done: number; joined_at: string;
+};
+export type WorkspaceDetail = Workspace & { role: string; members: Member[] };
+export type FileRow = {
+  id: string; name: string; chars: number; source_url: string | null; uploaded_at: string;
+  collection: string | null; uploader: string | null;
+};
+export type Collection = { name: string; files: number; chars: number };
+export type PageRow = { id: string; title: string; created_by: string; updated_by: string; updated_at: string; chars: number; sources: number };
+export type PageSource = { n: number; file_id: string; file_name: string; quote: string };
+export type PageFull = {
+  id: string; workspace_id: string; title: string; content: string; sources: PageSource[];
+  created_by: string; updated_by: string; created_at: string; updated_at: string; run_id: string | null;
+};
+export type PageReview = {
+  ok: boolean; sources: number; missing_sources: number[]; unused_sources: number[];
+  stale_sources: number[]; uncited_paragraphs: string[];
+};
+export type Task = {
+  id: string; title: string; description: string; status: "todo" | "doing" | "done";
+  assignee_type: "user" | "agent" | null; assignee_id: string | null; assignee_name: string | null;
+  agent_name: string | null; due_date: string | null; estimate_hours: number | null; page_id: string | null;
+  created_by: string; done_by: string | null; created_at: string;
+};
+export type RosterAgent = {
+  id: string; name: string; icon?: string | null; description: string; tools: string[];
+  builtin?: boolean; pack?: boolean; custom?: boolean; model?: string | null; shared?: boolean;
+};
+export type CustomAgent = {
+  id: string; name: string; description: string; instructions: string; tools: string[]; model: string | null;
+  icon: string | null; shared: boolean; installs: number; template_of: string | null; author?: string | null;
+};
+export type ToolDef = { name: string; description: string; writes: boolean; group: string };
+export type GroupImpact = {
+  workspace: Workspace; members: number; tasks_total: number; tasks_done: number;
+  tasks_done_by_people: number; tasks_done_by_agents: number; pages: number; pages_by_agents: number;
+  files: number; agent_runs: number; hours_saved_estimate: number; hours_saved_rule: string;
+  shared_agent_installs: number;
+  contributions: { user_id: string; name: string | null; tasks_done: number; open_hours: number; hours_per_week: number }[];
+};
+export type Artifact = { type: "page" | "task"; id: string; title: string; agent: string };
+export type AskRun = Run & { request?: string | null; answer?: string | null; kind?: string | null; workspace_id?: string | null };
+
+export const who = (by: string | null | undefined, names: Record<string, string> = {}) =>
+  !by ? "-" : by.startsWith("agent:") ? `${by.slice(6)} agent` : names[by] ?? "a member";
+
+/** The workspace the user is looking at (cookie), else their personal one. Server side. */
+export async function currentWorkspace(): Promise<Workspace | null> {
+  const { cookies } = await import("next/headers");
+  const list = (await api<{ workspaces: Workspace[] }>("workspaces"))?.workspaces ?? [];
+  const picked = (await cookies()).get("learis_ws")?.value;
+  return list.find((w) => w.id === picked) ?? list.find((w) => w.kind === "personal") ?? null;
+}
