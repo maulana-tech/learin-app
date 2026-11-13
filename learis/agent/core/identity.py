@@ -110,6 +110,11 @@ def from_token(token: str) -> User:
     claims = json.loads(_unb64(payload))
     if claims["exp"] < datetime.now(timezone.utc).timestamp():
         raise NotAuthorised("session expired")
+    # A signed token outlives nothing: once the account is deleted or switched off, it stops working.
+    with connect() as c:
+        alive = c.execute("SELECT 1 FROM users WHERE id=? AND active=1", (claims["sub"],)).fetchone()
+    if not alive:
+        raise NotAuthorised("this account no longer exists")
     return User(claims["sub"], claims["email"], claims["name"], claims["role"])
 
 
@@ -148,7 +153,7 @@ def demo() -> None:
     global SECRET
     SECRET = os.environ["LEARIS_SECRET"]
 
-    u = User("usr_1", "sari@kampus.ac.id", "Sari", "student")
+    u = add_user(f"sari.{secrets.token_hex(3)}@kampus.ac.id", "Sari", "student", "secret1234")
     t = issue_token(u)
     assert from_token(t).email == u.email
 
@@ -159,7 +164,14 @@ def demo() -> None:
         raise AssertionError("a forged token must be rejected")
     except NotAuthorised:
         pass
-    print("  token: valid ✓ · tampered → rejected ✓")
+    with connect() as cx:
+        cx.execute("DELETE FROM users WHERE id=?", (u.id,))
+    try:
+        from_token(t)
+        raise AssertionError("the token of a deleted account must be rejected")
+    except NotAuthorised:
+        pass
+    print("  token: valid ✓ · tampered → rejected ✓ · deleted account → rejected ✓")
 
     h = _hash_password("secret123")
     assert _password_matches("secret123", h) and not _password_matches("wrong", h)
