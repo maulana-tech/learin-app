@@ -8,9 +8,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // the one main action in an area: the brand blue on white
+        // the one main action in an area: solid black
         default: "bg-primary text-primary-foreground shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_4px_12px_rgba(0,0,0,0.25)] hover:bg-brand-lit",
-        // everything else: a pale-blue tile
+        // everything else: a pale grey tile
         outline: "bg-raised text-text hover:bg-hover hover:text-fg aria-expanded:bg-hover",
         secondary: "border-border bg-white text-text hover:bg-raised aria-expanded:bg-raised",
         ghost: "text-text hover:bg-raised hover:text-fg aria-expanded:bg-raised",
