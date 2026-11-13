@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 const UPSTREAM = process.env.LEARIS_API ?? "http://127.0.0.1:8787";
 
 async function forward(req: Request, path: string[], method: "GET" | "POST") {
-  const token = (await cookies()).get("learis_session")?.value;
+  const jar = await cookies();
+  const token = jar.get("learis_session")?.value;
   const headers: Record<string, string> = { "content-type": "application/json" };
   const accept = req.headers.get("accept");
   if (accept) headers.accept = accept;
@@ -18,6 +19,9 @@ async function forward(req: Request, path: string[], method: "GET" | "POST") {
   // kept in the browser, passed through, and never stored or logged here.
   const aiSettings = req.headers.get("x-learis-ai");
   if (aiSettings) headers["x-learis-ai"] = aiSettings;
+  // The workspace the user is looking at; the service checks membership.
+  const ws = jar.get("learis_ws")?.value;
+  if (ws) headers["x-learis-ws"] = ws;
   // The query string is part of the request: a GET's inputs travel there.
   const { search } = new URL(req.url);
 
