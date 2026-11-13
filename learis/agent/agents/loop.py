@@ -12,6 +12,8 @@ or stops early, the team (agents/team.py) finishes the job the fixed way.
 """
 from __future__ import annotations
 
+import re
+
 import json
 from typing import Any, Dict, List, Optional
 
@@ -86,6 +88,19 @@ def _brief_result(res: Dict[str, Any]) -> str:
     return ", ".join(bits) or "ok"
 
 
+#: An answer that only announces the next step ("saya akan membuat halaman…", "I'll now create…").
+_ANNOUNCE = re.compile(
+    r"\b(saya akan|akan saya|sekarang saya|selanjutnya saya|mari (saya|kita)|i will|i'll|let me|next,? i)\b[^.\n]{0,60}"
+    r"\b(buat|membuat|tulis|menulis|simpan|menyimpan|tambah|menambahkan|create|write|save|add|make)", re.I)
+NUDGE = ("You described what you will do but did not do it. Do it now by calling the tools. "
+         "If you truly cannot, say plainly why instead of announcing a next step.")
+
+
+def announces(text: str) -> bool:
+    t = (text or "").strip()
+    return bool(t) and len(t) < 1500 and bool(_ANNOUNCE.search(t[-400:]))
+
+
 def run(r, cfg: ai.Config, agent: str, ctx: Ctx, task: str, system: Optional[str] = None,
         tools: Optional[List[str]] = None, label: Optional[str] = None,
         model: Optional[str] = None, max_rounds: int = MAX_ROUNDS) -> Dict[str, Any]:
@@ -106,6 +121,7 @@ def run(r, cfg: ai.Config, agent: str, ctx: Ctx, task: str, system: Optional[str
     if model:
         from dataclasses import replace
         m = replace(m, model=model)
+    nudged = False
     for rnd in range(1, max_rounds + 1):
         try:
             turn = ai.chat_with_tools(m, messages, specs)
@@ -113,6 +129,12 @@ def run(r, cfg: ai.Config, agent: str, ctx: Ctx, task: str, system: Optional[str
             return {"calls": calls, "rounds": rnd, "final": "", "error": str(e)}
         messages.append(turn.message)
         if not turn.calls:
+            # Models sometimes end on "I will now write the page" without doing it. Once, ask for the act.
+            if specs and not nudged and rnd < max_rounds and announces(turn.text):
+                nudged = True
+                r.say(label, "note", "said what it would do without doing it; asked to do it now")
+                messages.append({"role": "user", "content": NUDGE})
+                continue
             return {"calls": calls, "rounds": rnd, "final": turn.text}
         for c in turn.calls:
             calls += 1
