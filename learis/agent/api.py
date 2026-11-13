@@ -95,6 +95,9 @@ def _ai(headers):
 @route("GET", r"/health")
 def health(_m, _b, _h):
     return 200, {"ok": True, "env": CFG.env, "server_ai": CFG.server_ai,
+                 "server_ai_model": CFG.ai_model if CFG.server_ai else None,
+                 "server_ai_provider": ("Amazon Bedrock" if "bedrock-mantle." in CFG.ai_base_url else "custom")
+                 if CFG.server_ai else None,
                  "auto_delete_default": CFG.auto_delete}
 
 
@@ -427,7 +430,10 @@ def mcp_endpoint(_m, b, h):
 
 @route("POST", r"/me/delete")
 def delete_me(_m, b, h):
-    """Everything about this student goes: documents, evidence, outputs, runs."""
+    """Everything about this person goes: their Skill Gap record, their runs and
+    chats, their personal workspace with its files, pages, tasks and agents,
+    their place in every group, and the account itself. A group they own passes
+    to its longest-standing other member, or is deleted when nobody else is in it."""
     u = _user(h)
     if b.get("confirm") != "delete":
         return 400, {"error": "send {\"confirm\": \"delete\"} to delete everything"}
@@ -436,6 +442,19 @@ def delete_me(_m, b, h):
             c.execute(f"DELETE FROM {table} WHERE user_id=?", (u.id,))
         c.execute("DELETE FROM steps WHERE run_id IN (SELECT id FROM runs WHERE user_id=?)", (u.id,))
         c.execute("DELETE FROM runs WHERE user_id=?", (u.id,))
+        c.execute("DELETE FROM workspaces WHERE owner_id=? AND kind='personal'", (u.id,))
+        # A group they own passes to its longest-standing other member; one with nobody else goes.
+        for (gid,) in c.execute("SELECT id FROM workspaces WHERE owner_id=?", (u.id,)).fetchall():
+            heir = c.execute("SELECT user_id FROM members WHERE workspace_id=? AND user_id!=?"
+                             " ORDER BY joined_at LIMIT 1", (gid, u.id)).fetchone()
+            if heir:
+                c.execute("UPDATE workspaces SET owner_id=? WHERE id=?", (heir[0], gid))
+                c.execute("UPDATE members SET role='owner' WHERE workspace_id=? AND user_id=?", (gid, heir[0]))
+            else:
+                c.execute("DELETE FROM workspaces WHERE id=?", (gid,))
+        c.execute("DELETE FROM members WHERE user_id=?", (u.id,))
+        # and the account itself: name, email and password hash. Its tokens stop working at once.
+        c.execute("DELETE FROM users WHERE id=?", (u.id,))
     return 200, {"deleted": True}
 
 
@@ -454,6 +473,16 @@ class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def _send(self, code: int, data: Any) -> None:
+        if isinstance(data, dict) and isinstance(data.get("__file__"), bytes):
+            # A download (a Word export): bytes with a filename, never JSON.
+            blob, name = data["__file__"], re.sub(r'[^\w.\- ]', "_", str(data.get("name") or "file"))
+            self.send_response(code)
+            self.send_header("Content-Type", str(data.get("type") or "application/octet-stream"))
+            self.send_header("Content-Length", str(len(blob)))
+            self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+            self.end_headers()
+            self.wfile.write(blob)
+            return
         body = json.dumps(data, ensure_ascii=False, default=str).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -476,7 +505,16 @@ class Handler(BaseHTTPRequestHandler):
         if method == "POST":
             n = int(self.headers.get("Content-Length") or 0)
             if n > 4 * MAX_TEXT:
-                return self._send(413, {"error": "the request is too large"})
+                # Read what was sent before answering, or the client sees a broken connection
+                # instead of this message. Past 32 MB, just hang up.
+                left = n if n <= 32 * 1024 * 1024 else 0
+                while left > 0:
+                    chunk = self.rfile.read(min(left, 1 << 16))
+                    if not chunk:
+                        break
+                    left -= len(chunk)
+                self.close_connection = True
+                return self._send(413, {"error": f"the request is too large (a document can have up to {MAX_TEXT:,} characters)"})
             if n:
                 try:
                     body = json.loads(self.rfile.read(n))
@@ -645,6 +683,11 @@ def demo() -> None:
     assert call("POST", f"/gallery/{ag['id']}/install", {"ws": personal_ws["id"]})[0] == 201
     assert len(call("GET", "/tools")[1]["tools"]) >= 10
     assert call("POST", "/ask", {"ws": g["id"], "request": "Ringkas modul"})[0] == 400, "no tool-calling model"
+    import workspace_api as wa
+    hist = wa.history_of({"history": [{"role": "user", "content": "a"}, {"role": "system", "content": "x"},
+                                      {"role": "assistant", "content": "b" * 9000}] * 10})
+    assert len(hist) == wa.HISTORY_TURNS and {t["role"] for t in hist} <= {"user", "assistant"}
+    assert max(len(t["content"]) for t in hist) <= wa.HISTORY_CHARS, "history is cut to size"
     gi = call("GET", "/group-impact", {"ws": g["id"]})[1]
     assert gi["members"] == 2 and gi["tasks_done_by_people"] == 1
     code, rep_page = call("POST", "/group-report", {"ws": g["id"]})
@@ -653,9 +696,20 @@ def demo() -> None:
 
     assert call("POST", "/me/delete", {})[0] == 400
     assert call("POST", "/me/delete", {"confirm": "delete"})[1]["deleted"]
-    assert call("GET", "/documents")[1]["documents"] == []
+    try:
+        call("GET", "/files", {"ws": personal_ws["id"]})
+        raise AssertionError("a deleted account's token must stop working")
+    except identity.NotAuthorised:
+        pass
+    with store.connect() as c:
+        left = {t: c.execute(f"SELECT count(*) FROM {t} WHERE {col}=?", (u.id,)).fetchone()[0]
+                for t, col in (("users", "id"), ("documents", "user_id"), ("runs", "user_id"), ("members", "user_id"))}
+        assert not any(left.values()), left
+        assert not c.execute("SELECT 1 FROM workspaces WHERE id=?", (personal_ws["id"],)).fetchone()
+        heir = c.execute("SELECT owner_id FROM workspaces WHERE id=?", (g["id"],)).fetchone()
+        assert heir and heir[0] != u.id, "the group they owned passes to its other member"
     print(f"api ok: {len(ROUTES)} routes · all but /health and /login need a session · "
-          "students see only their own record · a full run through the API · delete-me works")
+          "students see only their own record · a full run through the API · delete-me removes the account and its data")
 
 
 if __name__ == "__main__":
@@ -666,6 +720,10 @@ if __name__ == "__main__":
         raise SystemExit(0)
     print(f"LEARIS API · env={CFG.env} · server AI: {'yes' if CFG.server_ai else 'no (BYOK only)'} "
           f"· {POOL.size} worker(s) · scheduler {'on' if SCHEDULER.enabled else 'off'}")
+    from agents import workspace as agents_ws
+    seeded = agents_ws.seed_gallery()
+    if seeded:
+        print(f"  community gallery started with {seeded} agents")
     # A run left queued or running by a previous process will never finish.
     n = store.fail_stale_runs(older_than_minutes=0)
     if n:
