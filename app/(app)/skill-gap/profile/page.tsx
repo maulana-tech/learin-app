@@ -9,12 +9,12 @@ export const dynamic = "force-dynamic";
 
 function Block({ title, text, children }: { title: string; text: string; children?: React.ReactNode }) {
   return (
-    <div className="bg-inner-grad rounded-lg border p-4">
+    <div className="bg-card-grad rounded-xl border p-5 shadow-soft">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[14px] font-medium">{title}</h3>
+        <h3 className="text-muted-foreground text-[12px] font-medium tracking-wide uppercase">{title}</h3>
         <CopyButton text={text} />
       </div>
-      {children ?? <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{text}</p>}
+      {children ?? <p className="mt-2 text-[14px] leading-relaxed whitespace-pre-line">{text}</p>}
     </div>
   );
 }
@@ -35,7 +35,7 @@ export default async function ProfilePage() {
         <section className="min-w-0 space-y-3">
           <h2 className="text-[14px] font-medium">Your current profile</h2>
           <ProfileText initial={st.data.profile_text ?? ""} />
-          <div className="bg-inner-grad rounded-lg border p-4"><AnalyseButton label="Write suggestions" /></div>
+          <div className="bg-inner-grad rounded-xl border p-4"><AnalyseButton label="Write suggestions" /></div>
         </section>
 
         <section className="min-w-0 space-y-3">
@@ -51,8 +51,8 @@ export default async function ProfilePage() {
                 ) : (
                   <ul className="mt-2 space-y-2">
                     {p.bullets.map((b) => (
-                      <li key={b.text} className="text-sm leading-relaxed">
-                        • {b.text}
+                      <li key={b.text} className="border-l-2 border-[#111] pl-3 text-[13.5px] leading-relaxed">
+                        {b.text}
                         <span className="text-muted-foreground block text-[11px]">source: {b.source}</span>
                       </li>
                     ))}
