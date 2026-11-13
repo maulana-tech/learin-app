@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, FileText, Link2, Plus } from "lucide-react";
+import { ArrowRight, Check, Copy, FileText, Link2, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 
@@ -21,7 +21,7 @@ export function CreateGroup() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   return (
-    <form className="bg-inner-grad max-w-xl space-y-4 rounded-lg border p-4" onSubmit={async (e) => {
+    <form className="space-y-4 rounded-xl border bg-white p-5 shadow-soft" onSubmit={async (e) => {
       e.preventDefault();
       setBusy(true);
       setError("");
@@ -46,10 +46,28 @@ export function CreateGroup() {
   );
 }
 
-export function InviteLink({ workspaceId }: { workspaceId: string }) {
+export function InviteLink({ workspaceId, compact, dark }: { workspaceId: string; compact?: boolean; dark?: boolean }) {
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const origin = useSyncExternalStore(() => () => {}, () => window.location.origin, () => "");
+  async function make() {
+    const r = await call<{ token: string }>(`workspaces/${workspaceId}/invite`, {});
+    const l = `${origin}/invite/${r.token}`;
+    setLink(l);
+    setCopied(false);
+    return l;
+  }
+  if (compact) {
+    return (
+      <Button variant="outline" title="Valid for 7 days, up to 25 people"
+        className={dark ? "border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white" : undefined} onClick={async () => {
+        const l = link || await make();
+        try { await navigator.clipboard.writeText(l); setCopied(true); } catch { prompt("Invite link", l); }
+      }}>
+        {copied ? <Check className="size-4" /> : <Link2 className="size-4" />} {copied ? "Link copied" : "Invite friends"}
+      </Button>
+    );
+  }
   return (
     <div className="space-y-2">
       <Button variant="outline" onClick={async () => {
@@ -74,13 +92,17 @@ export function MyHours({ workspaceId, hours }: { workspaceId: string; hours: nu
   const router = useRouter();
   const [h, setH] = useState(String(hours));
   return (
-    <form className="flex items-end gap-2" onSubmit={async (e) => {
+    <form onSubmit={async (e) => {
       e.preventDefault();
       await call(`workspaces/${workspaceId}/hours`, { hours: Number(h) });
       router.refresh();
     }}>
-      <Field label="My free hours a week here" hint="The Planner will not pile more than this on you."><Input type="number" min={1} max={60} step={0.5} value={h} onChange={(e) => setH(e.target.value)} className="w-28" /></Field>
-      <Button type="submit" variant="outline">Save</Button>
+      <p className="text-text text-[12.5px]">My free hours a week here</p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <Input type="number" min={1} max={60} step={0.5} value={h} onChange={(e) => setH(e.target.value)} className="w-28" />
+        <Button type="submit" variant="outline">Save</Button>
+      </div>
+      <p className="text-muted-foreground mt-1.5 text-[11.5px]">The Planner will not pile more than this on you.</p>
     </form>
   );
 }
@@ -97,14 +119,29 @@ export function RemoveMember({ workspaceId, userId, label }: { workspaceId: stri
   );
 }
 
-export function ReportButton() {
+export function ReportButton({ dark }: { dark?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
-    <Button disabled={busy} onClick={async () => {
+    <Button disabled={busy} className={dark ? "bg-white text-[#111] hover:bg-[#ececec]" : undefined} onClick={async () => {
       setBusy(true);
       try { const p = await call<{ id: string }>("group-report", {}); router.push(`/pages/${p.id}`); }
       finally { setBusy(false); }
     }}><FileText className="size-4" /> {busy ? "Writing…" : "Write activity report"}</Button>
+  );
+}
+
+export function OpenGroup({ id, name, members }: { id: string; name: string; members: number }) {
+  const router = useRouter();
+  return (
+    <button type="button" onClick={async () => { await switchTo(id); router.push("/group"); router.refresh(); }}
+      className="flex w-full items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-soft transition-colors hover:border-[rgba(0,0,0,0.3)]">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#111] text-white"><Users className="size-4" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-medium">{name}</span>
+        <span className="text-muted-foreground block text-[11.5px]">{members} member(s)</span>
+      </span>
+      <ArrowRight className="text-muted-foreground size-4" />
+    </button>
   );
 }
