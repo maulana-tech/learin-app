@@ -6,7 +6,7 @@ import { AnalyseButton } from "@/components/analyse-button";
 import { Page, ServiceDown } from "@/components/page-bits";
 import { PageHeader } from "@/components/shell";
 import { StatusBadge } from "@/components/status-badge";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/dort";
 import { McpConnect } from "./McpConnect";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +30,10 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
         <section className="min-w-0 space-y-3">
           <ul className="space-y-2">
             {team.data.team.map((a) => (
-              <li key={a.code} className="rounded-lg border p-3">
+              <li key={a.code} className="bg-inner-grad rounded-lg border p-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{a.name}</span>
-                  <Badge variant="outline" className="font-mono text-[10px]">{a.priority}</Badge>
+                  <span className="text-[14px] font-medium">{a.name}</span>
+                  <Chip>{a.priority}</Chip>
                   {a.tools.length > 0 && <span className="text-muted-foreground ml-auto text-[11px]">{a.tools.length} tools</span>}
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{a.brief}</p>
@@ -55,20 +55,20 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
             ))}
           </ul>
 
-          <h2 className="pt-2 text-sm font-semibold">Next</h2>
+          <h2 className="pt-2 text-[14px] font-medium">Next</h2>
           <ul className="space-y-2">
             {team.data.planned.map((a) => (
               <li key={a.code} className="text-muted-foreground rounded-lg border border-dashed p-3 text-xs">
                 <span className="text-foreground font-medium">{a.name}</span>{" "}
-                <Badge variant="outline" className="font-mono text-[10px]">{a.priority}</Badge>
+                <Chip>{a.priority}</Chip>
                 <p className="mt-1 leading-relaxed">{a.brief}</p>
               </li>
             ))}
           </ul>
 
           {jobs && (
-            <div className="rounded-lg border p-4">
-              <h2 className="text-sm font-semibold">Workers and scheduled jobs</h2>
+            <div className="bg-inner-grad rounded-lg border p-4">
+              <h2 className="text-[14px] font-medium">Workers and scheduled jobs</h2>
               <p className="text-muted-foreground mt-1 text-xs">
                 {jobs.workers.workers} worker(s) · {jobs.workers.busy} busy · {jobs.workers.queued} queued ·{" "}
                 {jobs.workers.done} run(s) done since start · scheduler {jobs.scheduler_on ? "on" : "off"}
@@ -89,14 +89,14 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
             </div>
           )}
 
-          <div className="rounded-lg border p-4">
-            <h2 className="mb-2 text-sm font-semibold">Use LEARIS from your own agent (MCP)</h2>
+          <div className="bg-inner-grad rounded-lg border p-4">
+            <h2 className="mb-2 text-[14px] font-medium">Use LEARIS from your own agent (MCP)</h2>
             <McpConnect />
           </div>
         </section>
 
         <section className="min-w-0 space-y-4">
-          <div className="rounded-lg border p-4"><AnalyseButton /></div>
+          <div className="bg-inner-grad rounded-lg border p-4"><AnalyseButton /></div>
           {runs.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {runs.slice(0, 8).map((r) => (
