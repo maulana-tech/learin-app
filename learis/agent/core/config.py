@@ -29,7 +29,7 @@ def _value(raw: str) -> str:
 #: variable beats both. `.secrets/ai.env` can hold the deployment's own model key
 #: (LEARIS_AI_API_KEY) in the gitignored, mode-700 secrets folder, so it never
 #: sits in `.env`.
-_ENV_FILES = (".env", ".secrets/ai.env")
+_ENV_FILES = (".env", ".secrets/ai.env", ".secrets/bedrock.env")
 
 
 def _load_env() -> None:
@@ -84,14 +84,28 @@ class Config:
         return bool(self.ai_base_url and self.ai_model)
 
 
+#: Amazon Bedrock's OpenAI-compatible endpoint (Mantle). A Bedrock API key
+#: (AWS_BEARER_TOKEN_BEDROCK) is a bearer token there, so the same client works.
+BEDROCK_URL = "https://bedrock-mantle.{region}.api.aws/v1"
+BEDROCK_MODEL = "deepseek.v3.2"
+
+
 def load() -> Config:
+    base = os.environ.get("LEARIS_AI_BASE_URL", "").strip().rstrip("/")
+    key = os.environ.get("LEARIS_AI_API_KEY", "").strip()
+    model = os.environ.get("LEARIS_AI_MODEL", "").strip()
+    bedrock = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip()
+    if bedrock and not base:
+        # A Bedrock key alone is enough: the deployment's model is then Bedrock.
+        region = os.environ.get("LEARIS_BEDROCK_REGION") or os.environ.get("AWS_REGION") or "ap-southeast-2"
+        base, key, model = BEDROCK_URL.format(region=region), key or bedrock, model or BEDROCK_MODEL
     return Config(
         env=os.environ.get("LEARIS_ENV", "dev"),
         database=os.environ.get("LEARIS_DB", "data/learis.db"),
         web_url=(os.environ.get("LEARIS_WEB_URL", "").strip() or "http://localhost:3000").rstrip("/"),
-        ai_base_url=os.environ.get("LEARIS_AI_BASE_URL", "").strip().rstrip("/"),
-        ai_api_key=os.environ.get("LEARIS_AI_API_KEY", "").strip(),
-        ai_model=os.environ.get("LEARIS_AI_MODEL", "").strip(),
+        ai_base_url=base,
+        ai_api_key=key,
+        ai_model=model,
         auto_delete=os.environ.get("LEARIS_AUTO_DELETE", "1") != "0",
     )
 
@@ -116,7 +130,11 @@ def fixtures_only(script: str, flag: str) -> None:
     if os.environ.get(flag) == "1":
         return
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="learis-check-")) / "check.db"
+    # No real model in a self-check: an empty value is not refilled from .secrets
+    # (the loader only sets what is unset), so the check runs the same everywhere
+    # and never spends anyone's model credit.
     env = {**os.environ, "LEARIS_DB": str(scratch), flag: "1",
+           "AWS_BEARER_TOKEN_BEDROCK": "", "LEARIS_AI_BASE_URL": "", "LEARIS_AI_API_KEY": "", "LEARIS_AI_MODEL": "",
            "PYTHONPATH": os.environ.get("PYTHONPATH", ".")}
     sys.exit(subprocess.call([sys.executable, script, *sys.argv[1:]], env=env))
 
