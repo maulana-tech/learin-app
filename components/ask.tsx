@@ -77,7 +77,7 @@ export function Ask({ workspaceName }: { workspaceName: string }) {
   return (
     <div className="space-y-4">
       <form onSubmit={(e) => { e.preventDefault(); void send(text); }}
-        className="bg-inner-grad focus-within:border-[rgba(6,71,179,0.45)] rounded-xl border p-3 shadow-soft">
+        className="bg-inner-grad focus-within:border-[rgba(0,0,0,0.45)] rounded-xl border p-3 shadow-soft">
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} disabled={busy}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text); } }}
           placeholder={`Ask your agents anything about ${workspaceName}…`}
