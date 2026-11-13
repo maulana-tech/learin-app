@@ -7,6 +7,7 @@ import type { CustomAgent, ToolDef } from "@/app/lib";
 import { Dot } from "@/components/dort";
 import { Field, TextArea } from "@/components/field";
 import { Button } from "@/components/ui/button";
+import { Checkbox, ControlRow, Switch } from "@/components/ui/controls";
 import { Input } from "@/components/ui/input";
 import { call } from "@/lib/ai-config";
 import { cn } from "@/lib/utils";
@@ -56,12 +57,8 @@ export function AgentForm({ tools, agent }: { tools: ToolDef[]; agent?: CustomAg
         <Field label="Model" optional hint="Leave empty to use the model you connected. A cheaper model suits simple jobs.">
           <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="gpt-4o-mini" />
         </Field>
-        <label className="flex items-start gap-2.5 text-[13.5px]">
-          <input type="checkbox" className="mt-1" checked={shared} onChange={(e) => setShared(e.target.checked)} />
-          <span>Share in the community gallery
-            <span className="text-muted-foreground block text-[12px]">Others can install a copy. Your files and pages are never shared, only the agent.</span>
-          </span>
-        </label>
+        <ControlRow control={<Switch checked={shared} onCheckedChange={setShared} />} label="Share in the community gallery"
+          hint="Others can install a copy. Your files and pages are never shared, only the agent." />
         {error && <p className="text-bad flex items-center gap-2 text-[13px]"><Dot tone="bad" />{error}</p>}
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : agent ? "Save agent" : "Create agent"}</Button>
       </div>
@@ -77,9 +74,9 @@ export function AgentForm({ tools, agent }: { tools: ToolDef[]; agent?: CustomAg
                   const on = picked.includes(t.name);
                   return (
                     <li key={t.name}>
-                      <label className={cn("flex cursor-pointer items-start gap-2.5 rounded-md p-1.5", on && "bg-white")}>
-                        <input type="checkbox" className="mt-1" checked={on}
-                          onChange={() => setPicked(on ? picked.filter((x) => x !== t.name) : [...picked, t.name])} />
+                      <label className={cn("flex cursor-pointer items-start gap-2.5 rounded-md p-1.5 transition-colors", on ? "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]" : "hover:bg-white/60")}>
+                        <Checkbox className="mt-0.5" checked={on}
+                          onCheckedChange={() => setPicked(on ? picked.filter((x) => x !== t.name) : [...picked, t.name])} />
                         <span className="min-w-0">
                           <span className="font-mono text-[12px]">{t.name}</span>
                           {t.writes && <span className="text-warn ml-1.5 text-[11px]">changes the workspace</span>}
