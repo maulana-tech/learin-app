@@ -2,13 +2,14 @@
 
 import {
   Bot, Check, ChevronsUpDown, FileText, FolderOpen, LayoutGrid, ListChecks, LogIn, LogOut, Menu,
-  MessagesSquare, PanelLeftClose, PanelLeftOpen, Plus, Radar, Settings2, Store, Users,
+  MessagesSquare, PanelLeftClose, PanelLeftOpen, PanelsTopLeft, Plus, Radar, Settings2, Store, Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { Workspace } from "@/app/lib";
+import { AgentBadge } from "@/components/agent-card";
 import { LearisMark } from "@/components/learis-mark";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -25,7 +26,7 @@ import { cn } from "@/lib/utils";
  * groups the user belongs to. Then the main feature, the Assistant, and the
  * workspace itself. Groups and the Skill Gap pack sit below as support. */
 
-export type Connection = { env: string; server_ai: boolean };
+export type Connection = { env: string; server_ai: boolean; server_ai_model?: string | null; server_ai_provider?: string | null };
 type User = { name: string; role: string; email: string };
 type Item = { title: string; href: string; icon: React.ElementType };
 
@@ -33,7 +34,13 @@ const isActive = (pathname: string, href: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
 const GROUPS: { label: string; items: Item[] }[] = [
-  { label: "", items: [{ title: "Assistant", href: "/", icon: MessagesSquare }] },
+  {
+    label: "",
+    items: [
+      { title: "Assistant", href: "/", icon: MessagesSquare },
+      { title: "Studio", href: "/studio", icon: PanelsTopLeft },
+    ],
+  },
   {
     label: "Workspace",
     items: [
@@ -108,8 +115,9 @@ function WorkspaceSwitcher({ workspaces, current, slim }: { workspaces: Workspac
 
 function AIStatus({ c, slim }: { c?: Connection; slim: boolean }) {
   const own = useAIConfig();
-  const label = !c ? "Service down" : own ? own.model : c.server_ai ? "Server model" : "No model yet";
-  const sub = !c ? "agent service not answering" : own ? (own.tools === false ? "fixed steps only" : "agents pick their tools") : "connect your AI";
+  const label = !c ? "Service down" : own ? own.model : c.server_ai ? (c.server_ai_model ?? "Server model") : "No model yet";
+  const sub = !c ? "agent service not answering" : own ? (own.tools === false ? "fixed steps only" : "agents pick their tools")
+    : c.server_ai ? `${c.server_ai_provider ?? "server"} · for everyone` : "connect your AI";
   const dot = !c ? "bg-rose-300" : own || c.server_ai ? "bg-emerald-300" : "bg-amber-300";
   return (
     <Link href="/settings" title={slim ? label : undefined}
@@ -170,9 +178,12 @@ function UserMenu({ user, slim }: { user?: User; slim: boolean }) {
   );
 }
 
-type Props = { user?: User; connection?: Connection; workspaces: Workspace[]; current?: Workspace };
+type Props = {
+  user?: User; connection?: Connection; workspaces: Workspace[]; current?: Workspace;
+  agents?: NavAgent[];
+};
 
-function NavBody({ user, connection, workspaces, current, slim, onNavigate, onCollapse }: Props & {
+function NavBody({ user, connection, workspaces, current, agents = [], slim, onNavigate, onCollapse }: Props & {
   slim: boolean; onNavigate?: () => void; onCollapse?: () => void;
 }) {
   const pathname = usePathname();
@@ -200,6 +211,23 @@ function NavBody({ user, connection, workspaces, current, slim, onNavigate, onCo
             {g.items.map((it) => <NavTile key={it.href} item={it} on={isActive(pathname, it.href)} slim={slim} onNavigate={onNavigate} />)}
           </div>
         ))}
+        {!slim && [["Your agents", agents.filter((a) => a.group !== "academic")], ["Academic", agents.filter((a) => a.group === "academic")]]
+          .filter(([, list]) => (list as NavAgent[]).length > 0).map(([label, list]) => (
+          <div key={label as string} className="flex flex-col gap-0.5">
+            <p className="mb-1 px-3 text-[12px] text-white/60">{label as string}</p>
+            {(list as NavAgent[]).map((a) => {
+              const on = pathname === `/agents/${a.id}` || pathname.startsWith(`/agents/${a.id}/`);
+              return (
+                <Link key={a.id} href={`/agents/${a.id}`} onClick={onNavigate} aria-current={on ? "page" : undefined}
+                  className={cn("flex h-8 items-center gap-2.5 rounded-md px-3 text-[13px] transition-colors",
+                    on ? "bg-white text-brand shadow-soft" : "text-white/80 hover:bg-white/10 hover:text-white")}>
+                  <span className="rounded-full bg-white p-0.5"><AgentBadge nickname={a.name} size="xs" showTooltip={false} /></span>
+                  <span className="min-w-0 flex-1 truncate">{a.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className={cn("flex flex-col gap-1 border-t border-white/15 pt-3", slim && "items-center")}>
@@ -212,6 +240,8 @@ function NavBody({ user, connection, workspaces, current, slim, onNavigate, onCo
 }
 
 /** Desktop: a rail on the blue canvas that collapses to icons. Phone: a top bar and a drawer. */
+type NavAgent = { id: string; name: string; group?: string };
+
 export function SideNav({ collapsed: initial = false, ...props }: Props & { collapsed?: boolean }) {
   const [slim, setSlim] = useState(initial);
   const [drawer, setDrawer] = useState(false);
