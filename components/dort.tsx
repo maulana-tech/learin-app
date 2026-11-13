@@ -42,7 +42,7 @@ export function CanvasChip({ tone, className, children, title }: {
   tone?: Tone; className?: string; children: React.ReactNode; title?: string;
 }) {
   const dot: Record<Tone, string> = {
-    ok: "bg-emerald-300", warn: "bg-amber-300", bad: "bg-rose-300", info: "bg-sky-200",
+    ok: "bg-emerald-300", warn: "bg-amber-300", bad: "bg-rose-300", info: "bg-white/70",
     neutral: "bg-white/50", solid: "bg-white",
   };
   return (
