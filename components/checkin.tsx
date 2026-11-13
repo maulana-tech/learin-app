@@ -27,7 +27,7 @@ export function CheckIn({ reminder }: { reminder: Reminder }) {
               setBusy(true);
               try { await call(`reminders/${reminder.id}/done`, { note }); router.refresh(); } finally { setBusy(false); }
             }}>Done</Button>
-            <Button size="sm" variant="outline" asChild><Link href="/plan">Adjust the plan</Link></Button>
+            <Button size="sm" variant="outline" asChild><Link href="/skill-gap/plan">Adjust the plan</Link></Button>
           </div>
         </div>
       </div>
