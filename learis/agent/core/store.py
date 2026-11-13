@@ -208,6 +208,8 @@ ADDED_LATER = [
     # The course (or any collection) a workspace file belongs to: a semester of
     # material uploaded at once is split by course, one agent per course.
     ("files", "collection", "TEXT"),
+    # Assistant chats: each turn is a run; the turns of one chat share an id.
+    ("runs", "conversation_id", "TEXT"),
 ]
 
 DOC_KINDS = ("syllabus", "transcript", "project", "github", "portfolio", "cv", "other")
@@ -487,6 +489,36 @@ def runs_in_workspace(wid: str, limit: int = 40) -> List[Dict[str, Any]]:
                          " LEFT JOIN users u ON u.id=r.user_id WHERE r.workspace_id=?"
                          " ORDER BY r.started_at DESC LIMIT ?", (wid, limit)).fetchall()
     return [dict(r) | {"summary": json.loads(r["summary"]) if r["summary"] else None} for r in rows]
+
+
+def conversations(user_id: str, wid: str) -> List[Dict[str, Any]]:
+    """The user's Assistant chats in a workspace, newest first, titled by their first message."""
+    with connect() as c:
+        rows = c.execute(
+            "SELECT conversation_id AS id, MIN(started_at) AS started_at, MAX(started_at) AS updated_at,"
+            " count(*) AS turns,"
+            " (SELECT request FROM runs x WHERE x.conversation_id=r.conversation_id ORDER BY started_at LIMIT 1) AS title"
+            " FROM runs r WHERE user_id=? AND workspace_id=? AND conversation_id IS NOT NULL"
+            " GROUP BY conversation_id ORDER BY updated_at DESC LIMIT 60", (user_id, wid)).fetchall()
+    out = [dict(r) for r in rows]
+    for r in out:  # a message with files ends in "[Attached files: …]"; the title is what was typed
+        r["title"] = (r.get("title") or "").split("\n\n[Attached files:")[0]
+    return out
+
+
+def conversation(user_id: str, cid: str) -> List[Dict[str, Any]]:
+    """Every turn of one chat, oldest first."""
+    with connect() as c:
+        rows = c.execute("SELECT id,status,request,answer,error,summary,started_at,finished_at,workspace_id FROM runs"
+                         " WHERE user_id=? AND conversation_id=? ORDER BY started_at", (user_id, cid)).fetchall()
+    return [dict(r) | {"summary": json.loads(r["summary"]) if r["summary"] else None} for r in rows]
+
+
+def delete_conversation(user_id: str, cid: str) -> int:
+    with connect() as c:
+        c.execute("DELETE FROM steps WHERE run_id IN (SELECT id FROM runs WHERE user_id=? AND conversation_id=?)",
+                  (user_id, cid))
+        return c.execute("DELETE FROM runs WHERE user_id=? AND conversation_id=?", (user_id, cid)).rowcount
 
 
 def runs(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
