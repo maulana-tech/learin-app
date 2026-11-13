@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, CircleDot, Loader2, Wrench, XCircle } from "lucide-react";
 
 import type { RunStep } from "@/app/lib";
+import { AgentBadge } from "@/components/agent-card";
 import { cn } from "@/lib/utils";
 
 export const AGENT_NAME: Record<string, string> = {
@@ -34,9 +35,9 @@ export function AgentPanel({ steps, live = false }: { steps: RunStep[]; live?: b
         return (
           <li key={`${g.agent}-${gi}`} className={cn("bg-inner-grad rounded-lg border p-3", working && "glow-top")}>
             <div className="flex items-center gap-2 text-sm font-medium">
-              {working ? <Loader2 className="text-brand size-4 animate-spin" /> : null}
+              <AgentBadge nickname={AGENT_NAME[g.agent] ?? g.agent} size="sm" showTooltip={false} />
               {AGENT_NAME[g.agent] ?? g.agent}
-              <span className="text-muted-foreground font-mono text-[10px]">agent</span>
+              {working ? <Loader2 className="text-brand size-4 animate-spin" /> : <span className="text-muted-foreground font-mono text-[10px]">agent</span>}
             </div>
             <ul className="mt-2 space-y-1.5">
               {g.steps.map((s) => {
