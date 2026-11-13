@@ -1,147 +1,102 @@
-# LEARIS · Skill Gap Radar
+# LEARIS · agentic workspace
 
-> Your degree already taught you more than your resume shows. LEARIS proves it, finds the
-> real gap to your target role, and closes it with a plan that fits your week.
+> Ask once. An Orchestrator splits the work across agents that read your files, write pages
+> where every claim cites a source, plan tasks for people and agents, and check the result.
 
-Built for **HackGlobal**. Students graduate with real skills they cannot name, and with a gap
-to the job they want that nobody has measured. LEARIS reads what a student has actually
-studied and built, proves which skills it shows (every one with the words that prove it),
-measures the gap to a target role, and plans four weeks that respect free hours and exam weeks.
+Built for **HackGlobal** (theme: AI · AI-Powered Smart Assistant; also Open Innovation and Social
+Impact). For students first, useful to anyone: a workspace like Notion or Lark, where the work is
+done by a team of agents you can customise, the way an ADE such as Orca lets you shape your agents.
 
-The full brief, decisions and implementation status: [learis/PROJECT-CONTEXT.md](learis/PROJECT-CONTEXT.md).
+Brief, decisions and the status of every feature: [learis/PROJECT-CONTEXT.md](learis/PROJECT-CONTEXT.md).
 
-## What it does
+## What a user can do
 
-| Step | Page | What happens |
-|---|---|---|
-| 1 | **Evidence** | Upload a syllabus, transcript, project README (PDF, TXT, Markdown) or paste a public GitHub repo. PDFs are read in the browser; only their text is sent. |
-| 2 | **Skills** | The Skill Evidence Agent lists every skill the documents prove, each with its quote, source and confidence. Skills missing from the student's own profile are marked *hidden*. |
-| 3 | **Gap map** | Pick a role (Junior Web Developer or Data Analyst) and region. Each requirement is mastered, partial or missing, with how many sample job posts ask for it and in which words. A radar shows it per category, with the first analysis dashed underneath. |
-| 4 | **Roadmap & plan** | What is already proven is crossed off; the rest is ordered by prerequisite. The Planner cuts it into four weeks that never exceed 85% of free hours and drop to 30% in exam weeks. |
-| 5 | **Profile** | Headline, About, CV bullets and a post draft, written only from proven skills. A model draft that claims an unproven skill or tool is rejected. |
-| | **Agent team** | Every run, step by step: what each agent did and what it refused to keep. |
-| | **AI & privacy** | Bring your own AI, consent, auto-delete, delete-all-my-data. |
-
-## The agent team
-
-One **Orchestrator** reads the student's state and runs, in order, only the agents that have
-something to do:
-
-```
-documents ─► Skill Evidence ─► Roadmap ─► Planner ─► Profile
-              skills+quotes    gap map     4 weeks    LinkedIn / CV
-```
-
-Each agent stands on a deterministic engine (`learis/agent/engine/`), so **the whole flow runs
-without any model**. When a student connects their own model and agrees to send their
-documents to it, the model adds what rules cannot (skills described in other words, a profile
-in a human voice), and everything it adds is checked before it is kept:
-
-- a skill whose quote is not really in the document is dropped;
-- confidence is capped by the kind of document (a course name is a hint, a project is proof);
-- a profile draft naming a skill or tool the evidence does not back is rejected and retried once.
-
-### Tools
-
-Each agent has its own tools (19 in all, `learis/agent/tools/`), registered with a JSON
-schema in `core/registry.py`:
-
-| Agent | Tools |
+| | |
 |---|---|
-| Skill Evidence | `list_documents`, `read_document`, `match_skills`, `list_taxonomy`, `fetch_github_repo`, `save_evidence` |
-| Roadmap | `get_skill_profile`, `get_target`, `job_demand`, `compute_gap`, `build_roadmap`, `explain_gap` |
-| Planner | `get_schedule`, `build_plan`, `set_week_focus` |
-| Profile | `get_proven_skills`, `get_profile_text`, `check_claims`, `save_profile` |
+| **Assistant** | Ask in plain language: "summarise each course in Files, one page per course, then plan my study week". The Orchestrator delegates, in parallel where it can, and the panel shows every agent and tool call live. |
+| **Files** | Upload a whole semester at once (PDF read in the browser, TXT, Markdown, a GitHub repo) and label each file with its course. Agents can then work one course at a time. |
+| **Pages** | Summaries, reports, study guides. Agent pages cite files as `[n]` with exact quotes; a quote that is not in the file is refused, and **Review sources** flags any claim without one. |
+| **Tasks** | A board for people and agents. Give a task to an agent and press **Run**: it does the work, links the page it wrote, and marks it done. |
+| **Agents** | Four built-in agents, plus your own: instructions, a chosen set of tools, optionally its own model. |
+| **Gallery** | Share an agent with the community; install others' agents in one click. Files never travel with it. |
+| **Group** | A supporting feature: invite friends with a link, share the workspace, split work between members and agents without overloading anyone, and see the group's impact with a one-click activity report. |
+| **Skill Gap Radar** | A built-in pack for students: proves skills from syllabi, transcripts and projects, measures the gap to a target role, plans four weeks, writes LinkedIn/CV suggestions. |
 
-With a model that supports function calling (on by default for OpenAI, Anthropic, Gemini and
-OpenRouter), each agent runs a tool-use loop (`agents/loop.py`) and picks its own tools; every
-call appears in the agent panel. The tools do the checking: `save_evidence` drops quotes that
-are not in the document, `save_profile` refuses a draft that claims an unproven skill or tool,
-`build_roadmap` refuses to run before `compute_gap`. If the model calls no tool or stops early,
-the team finishes the job with the fixed steps.
+## The swarm
 
-### Workers and scheduled jobs
+```
+                     user request
+                          │
+                 Orchestrator (LLM)  ── workspace_overview · delegate · delegate_parallel
+     ┌──────────┬─────────┼──────────┬──────────────┬────────────────┐
+   Reader     Writer    Planner    Reviewer    custom agents    Skill Gap pack
+   reads      sourced   tasks for  checks      built by users   (6 agents of its own)
+   files      pages     people &   citations
+                        agents
+                          │
+              workspace: pages · tasks · files
+```
 
-Runs go into a queue served by `LEARIS_WORKERS` threads (`core/worker.py`), so several
-students can run at once while the panel shows `queued` then `running`. A scheduler
-(`core/jobs.py`) runs three small jobs: `stale_runs` (close runs a restart left behind),
-`purge_text` (apply auto-delete to text kept earlier) and `checkin` (a weekly check-in reminder
-on the Overview once a plan is a week old).
+- Every agent runs the same tool loop (`learis/agent/agents/loop.py`) and sees **only its own tools**.
+- The tools do the checking, so a model cannot cheat:
+  - `create_page` refuses a quote that is not in the file.
+  - `create_task` warns when a member is past two weeks of their free hours.
+  - The Skill Gap tools refuse unproven skill claims.
+- Delegation is one level deep: the Orchestrator delegates, agents do not.
+- The Orchestrator needs a model that supports function calling.
+- Without a model, the workspace still works by hand, and the Skill Gap pack runs on its deterministic engines.
 
-### MCP
+## Bring your own AI · privacy
 
-`POST /mcp` serves the same skills to the student's own agent (Claude Code, Orca, any MCP
-client): `extract_skills`, `list_documents`, `get_skill_profile`, `refresh_gap`, `get_gap_map`,
-`get_roadmap`, `build_plan`, `get_plan`. The Agent team page shows the config and the token.
+- **Model:** works with OpenAI, Anthropic, Gemini, OpenRouter, Ollama, LM Studio, or any OpenAI-compatible endpoint.
+- **Key:** stays in the browser and travels with each request; never stored or logged.
+- **Consent:** no document is sent to a model until the user agrees.
+- **Isolation:** every workspace read and write checks membership.
+- **Data:** text in files is treated as data, never as instructions.
+- **Repositories:** read, never run.
+- **Control:** "Delete all my data" removes everything.
 
-P1 agents (Project, Verifier, Coach) are listed in the app as what comes next.
+## Workers, schedule, MCP
 
-## Bring your own AI
-
-One OpenAI-compatible client (`learis/agent/core/ai.py`) with `generate()` and
-`generate_structured()`: JSON-schema validation and one automatic retry. Presets for OpenAI,
-Anthropic, Gemini, OpenRouter, Ollama and LM Studio, plus any custom endpoint, and an optional
-different model per agent.
-
-The key stays in the student's browser and travels with each request in a header. The server
-uses it for that request and never stores or logs it.
-
-## Privacy
-
-- No document goes to an AI provider until the student agrees.
-- Auto-delete (on by default): once analysed, a document's full text is deleted; only the short
-  quotes that prove each skill remain.
-- Uploaded text is data, never instructions; the prompts say so and the output is validated.
-- Repositories are read (README, languages, dependency list), never run.
-- LinkedIn is pasted, not scraped; posts are published by the student.
-- "Delete all my data" removes every document, skill, plan and run.
+- **Workers:** runs are queued and served by `LEARIS_WORKERS` threads.
+- **Schedule:** three jobs run on a timer — close stuck runs, apply auto-delete, weekly check-in reminder.
+- **MCP:** `POST /mcp` offers the Skill Gap tools to the user's own agent (Claude Code, Orca, …).
 
 ## Run it
 
 ```bash
-# agent service (Python 3.10+, standard library only)
 cd learis/agent
 export LEARIS_SECRET="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
-python3 manage.py seed        # demo student sari@demo.learis / demo12345 with sample evidence
-python3 api.py                # http://127.0.0.1:8787
+python3 manage.py seed        # optional: a demo student for the Skill Gap pack
+python3 api.py                # http://127.0.0.1:8787  (Python 3.10+, standard library only)
 
-# web app, in another terminal
+# another terminal
 npm install
 LEARIS_API=http://127.0.0.1:8787 npm run dev   # http://localhost:3000
 ```
 
-Sign in as the demo student, press **Run the agents**, and walk the pages in order.
-Create real users with `python3 manage.py user <email> "<Name>" student "<password>"`.
+Create an account on the sign-in page, connect a model in **AI & privacy**, add files, and ask.
 
 ## Check it
 
 ```bash
-cd learis/agent && python3 manage.py check   # 19 self-checks: engines, tools, loop, workers, MCP, API
+cd learis/agent && python3 manage.py check   # 21 self-checks: engines, tools, swarm, workers, MCP, API
 npm run lint && npm test && npm run build
 ```
 
 ## Repository map
 
 ```
-app/(app)/              pages: overview, evidence, skills, gap, plan, profile, agents, settings
-app/api/learis/         proxy to the agent service; passes the session and the AI header
-components/             radar chart, agent panel, analyse button, sidebar, ui/
-lib/ai-config.ts        BYOK settings in the browser, request helper
-lib/pdf-text.ts         PDF text extraction in the browser
+app/(app)/              Assistant, files, pages, tasks, agents, gallery, group, settings, skill-gap/*
+app/invite/[token]      join a group (outside the shell, so a new user can sign up first)
+components/             side nav, ask, agent panel, design primitives (dort, shell, field) — UI after AERA
+lib/ai-config.ts        BYOK settings in the browser · lib/pdf-text.ts PDF text in the browser
 learis/agent/
-  api.py                HTTP service (stdlib), every route scoped to the signed-in student
-  agents/team.py        Orchestrator + Skill Evidence, Roadmap, Planner, Profile
-  agents/loop.py        the tool-use loop: an agent's model picks its own tools
-  tools/                the 19 agent tools; core/registry.py holds their schemas
-  core/worker.py        worker pool for runs; core/jobs.py scheduled jobs
-  mcp.py                the MCP server
-  engine/               evidence, gap, roadmap, planner, profile, catalog: no model inside
-  core/ai.py            OpenAI-compatible BYOK client
-  core/store.py         SQLite: students, documents, evidence, runs, outputs
-  sources/github.py     public repositories as evidence
-  catalog/              skill taxonomy, roles, illustrative job posts, demo samples
-learis/PROJECT-CONTEXT.md   the brief and the status of every feature
+  api.py · workspace_api.py   HTTP routes (stdlib), every query scoped to a member
+  agents/workspace.py         Orchestrator, built-in and custom agents, gallery, run-a-task
+  agents/loop.py              the tool loop every agent runs
+  agents/team.py              the Skill Gap pack
+  tools/                      workspace tools and Skill Gap tools; core/registry.py holds their schemas
+  core/space.py               workspaces, members, invites, pages, tasks, files, impact
+  core/ai.py · core/worker.py · core/jobs.py · mcp.py · engine/ · catalog/
 ```
-
-The job posts in `catalog/jobs.json` are illustrative samples written by the team, not real
-listings. The taxonomy is the team's own curation.
