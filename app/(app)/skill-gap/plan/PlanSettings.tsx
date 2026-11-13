@@ -35,7 +35,7 @@ export function PlanSettings({ hours, exams, canPlan }: { hours: number; exams: 
       <label className="space-y-1">
         <span className="text-muted-foreground block text-xs">Free hours a week</span>
         <input type="number" min={1} max={60} step={0.5} value={h} onChange={(e) => setH(e.target.value)}
-          className="border-input w-24 rounded-lg border bg-transparent px-2.5 py-2 text-sm dark:bg-input/30" />
+          className="border-input w-24 rounded-lg border bg-white px-3 py-2 text-sm" />
       </label>
       <div className="space-y-1">
         <span className="text-muted-foreground block text-xs">Exam weeks</span>
@@ -44,7 +44,7 @@ export function PlanSettings({ hours, exams, canPlan }: { hours: number; exams: 
             <button key={w} type="button" aria-pressed={ex.includes(w)}
               onClick={() => setEx(ex.includes(w) ? ex.filter((x) => x !== w) : [...ex, w].sort())}
               className={cn("size-9 rounded-lg border text-sm transition-colors",
-                ex.includes(w) ? "border-amber-500 bg-amber-500/15 font-medium" : "text-muted-foreground")}>
+                ex.includes(w) ? "border-brand bg-brand text-white" : "text-muted-foreground")}>
               {w}
             </button>
           ))}
