@@ -22,7 +22,21 @@ export default async function PagesPage() {
         aside={<NewPage />} />
       <div className="mt-6">
         {r.data.pages.length === 0 ? (
-          <Empty what="No pages yet" why="Ask the Assistant to summarise your files, or write one yourself." />
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <Empty what="No pages yet" why="Pages are where the agents' work lands: summaries, reports, study guides. Ask the Assistant, or press New page to write one yourself." />
+            <ul className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["Summaries per course", "“Ringkas tiap mata kuliah di Files, satu halaman per matkul.”"],
+                ["A sourced report", "“Buat laporan praktikum dari file yang ada, dengan sumber.”"],
+                ["A study guide", "“Buat panduan belajar UTS Statistika dari semua materinya.”"],
+              ].map(([t, q]) => (
+                <li key={t} className="bg-inner-grad rounded-lg border p-4">
+                  <p className="text-[13.5px] font-medium">{t}</p>
+                  <p className="text-muted-foreground mt-1.5 text-[12.5px] leading-relaxed">{q}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {r.data.pages.map((p) => (
