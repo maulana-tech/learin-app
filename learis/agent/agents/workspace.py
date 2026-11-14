@@ -24,6 +24,7 @@ on the run as an artifact, so the user sees what was done and by whom.
 from __future__ import annotations
 
 import json
+import re
 import secrets
 import threading
 import traceback
@@ -65,11 +66,12 @@ BUILTIN: Dict[str, Dict[str, Any]] = {
         "description": "Turns work into tasks with estimates and due dates, for people and for agents, "
                        "without overloading anyone.",
         "tools": ["list_tasks", "list_members", "create_task", "update_task", "list_pages", "read_page",
-                  "list_collections", "list_files", "read_file", "search_workspace"],
+                  "list_collections", "list_files", "read_file", "search_workspace", "find_deadlines"],
         "instructions": ("You are the Planner. Tasks and dates come only from the instruction and from the "
-                         "files and pages, which you read yourself (list_files, read_file, search_workspace): "
-                         "never invent an assignment or a deadline the material does not name. A deadline "
-                         "the material states becomes one task with exactly that date. Break other work into concrete tasks of at most 3 hours, each "
+                         "files and pages: for deadlines, call find_deadlines FIRST (one call reads every file) and "
+                         "make one task per stated date, several create_task calls in one turn; read single "
+                         "files only when you need more detail. Never invent an assignment or a deadline the "
+                         "material does not name. A deadline the material states becomes one task with exactly that date. Break other work into concrete tasks of at most 3 hours, each "
                          "with an estimate and a due date (YYYY-MM-DD). Assign tasks to members by "
                          "user_id only when the request asks to share work in a group. First call list_members: each "
                          "member may hold at most two weeks of their free hours (2 × hours_per_week) "
@@ -159,17 +161,22 @@ ACADEMIC: Dict[str, Dict[str, Any]] = {
     },
     "formatter": {
         "name": "Report Formatter", "icon": "file-type", "group": "academic",
-        "description": "Turns notes or a draft into a properly structured report (praktikum, makalah, skripsi "
-                       "BAB I-V, proposal), ready to export to Word in your campus format.",
+        "description": "Turns notes or a draft into a properly structured report or research paper (praktikum, "
+                       "makalah, skripsi BAB I-V, proposal, artikel jurnal), ready to export to Word.",
         "tools": READER_TOOLS + ["list_pages", "read_page", "create_page", "update_page", "review_page",
                                   "report_doctor", "audit_claims"],
         "instructions": (
-            "You are the Report Formatter. Decide the kind (praktikum, makalah, skripsi, proposal) from the "
-            "request. Write ONE page with exactly the sections that kind needs, as '# ' headings in order "
+            "You are the Report Formatter. Decide the kind (praktikum, makalah, skripsi, proposal, jurnal) from "
+            "the request; a 'paper', 'artikel', 'jurnal' or 'paper penelitian' is jurnal. Write ONE page with "
+            "exactly the sections that kind needs, as '# ' headings in order "
             "(praktikum: Tujuan, Dasar Teori, Alat dan Bahan, Langkah Kerja, Hasil, Pembahasan, Kesimpulan; "
             "makalah: Pendahuluan, Pembahasan, Penutup; skripsi: Pendahuluan, Tinjauan Pustaka, Metodologi, "
             "Hasil dan Pembahasan, Penutup; proposal: Latar Belakang, Rumusan Masalah, Tujuan, Tinjauan "
-            "Pustaka, Metodologi, Jadwal), '## ' for sub-sections, formal academic Indonesian unless asked "
+            "Pustaka, Metodologi, Jadwal; jurnal: Abstrak (one paragraph of 150-250 words: aim, method, main "
+            "result, conclusion, then a line 'Kata kunci: 3-5 terms'), Pendahuluan (background, the gap, the "
+            "aim), Tinjauan Pustaka, Metode Penelitian (say honestly what the method is: when the work rests "
+            "only on the workspace's files, it is a studi pustaka of those sources), Hasil dan Pembahasan, "
+            "Kesimpulan; do not number the headings yourself), '## ' for sub-sections, formal academic Indonesian unless asked "
             "otherwise, every claim from a file cited as [n]; each source quotes word for word the one sentence "
             "that proves its claim (never a whole file), a different fact a different source. Where the files have no "
             "material for a section, write a one-line placeholder saying what the student must add; never "
@@ -399,7 +406,11 @@ def run_agent(r: Run, cfg: ai.Config, ctx: Ctx, agent: Dict[str, Any], instructi
     r.say(label, "result" if not out.get("error") else "warn",
           (answer[:400] or "done") + (f" · made {len(made)} item(s)" if made else ""),
           {"artifacts": made, "calls": out["calls"]})
-    return {"agent": agent["id"], "answer": answer[:2000], "artifacts": made, "calls": out["calls"]}
+    finished = not out.get("error") and not out.get("stopped")
+    return {"agent": agent["id"], "finished": finished,
+            "made": {"pages": sum(1 for a in made if a["type"] == "page"), "tasks": sum(1 for a in made if a["type"] == "task")},
+            "answer": (answer if finished else f"NOT FINISHED ({out.get('error') or out.get('stopped')}). {answer}")[:2000],
+            "artifacts": made, "calls": out["calls"]}
 
 
 ORCH_TOOLS = [
@@ -429,7 +440,9 @@ ORCH_SYSTEM = (
     "courses, go together in ONE delegate_parallel call, never one by one. "
     "Work that depends on earlier results (tasks from finished summaries, a review of a written page) "
     "goes after, with delegate. When everything is done, answer the user in their language: what was "
-    "made, where, and anything an agent could not do. When the person asks a question, the answer "
+    "made, where, and anything an agent could not do. Report only what the results show was made "
+    "(each result says finished and how many pages and tasks it made); when an agent did not finish, "
+    "delegate the missing part again or say plainly that it is not done. When the person asks a question, the answer "
     "itself goes in your reply (the key facts, dates and steps), not only a pointer to a page. "
     "A short question about the files needs only the Reader, not a new page. Academic work: a lab "
     "report, makalah, skripsi chapter or proposal goes to the Report Formatter; checking whether sources "
@@ -459,6 +472,19 @@ def _with_history(history: Optional[List[Dict[str, str]]], request: str) -> str:
 
 
 ORCH_ROUNDS = 10
+
+
+def _overclaims(answer: str, made: List[Dict[str, Any]]) -> str:
+    """What the answer says was made that was not: tasks or pages it mentions when none exist."""
+    a = answer.lower()
+    pages = sum(1 for x in made if x["type"] == "page")
+    tasks = sum(1 for x in made if x["type"] == "task")
+    bits = []
+    if tasks == 0 and re.search(r"\b(tugas|task|tasks)\b[^.\n]{0,80}\b(dibuat|telah|sudah|created|added|ditambahkan|di papan|board)", a):
+        bits.append("no task was created in this run")
+    if pages == 0 and re.search(r"\b(halaman|page|pages)\b[^.\n]{0,80}\b(dibuat|telah|sudah|created|written|ditulis)", a):
+        bits.append("no page was written in this run")
+    return "; ".join(bits)
 WRAP_UP = ("Stop delegating now. In the language the person wrote in, tell them in a few short lines "
            "what was made (name the pages and tasks) and what is still left undone, if anything.")
 
@@ -487,6 +513,17 @@ def orchestrate(user_id: str, run_id: str, wid: str, request: str, cfg: Optional
                 messages.append({"role": "tool", "tool_call_id": c.id,
                                  "content": json.dumps(res, ensure_ascii=False, default=str)[:8000]})
         made = ctx.notes.get("artifacts", [])
+        if answer:
+            fix = _overclaims(answer, made)
+            if fix:
+                r.say("Orchestrator", "note", f"fact check: {fix}; asked to correct the answer")
+                try:
+                    redo = ai.chat_with_tools(model, messages + [{"role": "user", "content":
+                        f"FACT CHECK: {fix}. Rewrite your answer to the person truthfully: what was made, and "
+                        "what was not done. Do not call tools."}], [])
+                    answer = redo.text or answer
+                except ai.AIError:
+                    answer += f"\n\n(Catatan: {fix}.)"
         if not answer:
             # Out of rounds: no more delegating, but the person still gets a real account of the work.
             try:
@@ -504,8 +541,16 @@ def orchestrate(user_id: str, run_id: str, wid: str, request: str, cfg: Optional
         if not isinstance(e, ai.AIError):
             traceback.print_exc()
         r.say("Orchestrator", "error", str(e)[:400])
-        store.finish_run(run_id, "failed", error=str(e)[:400])
-        return {"error": str(e)}
+        # What was made before the failure is real and stays: say so, plainly, with the list.
+        made = ctx.notes.get("artifacts", [])
+        if made:
+            listing = "\n".join(f"- {'Halaman' if a['type'] == 'page' else 'Tugas'}: {a['title']}" for a in made)
+            partial = (f"Koneksi ke model terputus sebelum semua selesai ({str(e)[:160]}). Yang sudah dibuat:\n"
+                       f"{listing}\n\nKirim ulang permintaan untuk melanjutkan bagian yang belum.")
+            with connect() as c:
+                c.execute("UPDATE runs SET answer=? WHERE id=?", (partial, run_id))
+        store.finish_run(run_id, "failed", {"artifacts": made} if made else None, error=str(e)[:400])
+        return {"error": str(e), "artifacts": made}
 
 
 def _orchestrator_call(r: Run, cfg: ai.Config, ctx: Ctx, c: ai.ToolCall) -> Dict[str, Any]:
@@ -755,6 +800,17 @@ def demo() -> None:
     except ToolRefused:
         pass
     assert wt.create_task(ctx, "Bab 3")["task_id"], "unassigned work is always allowed"
+
+    # deadlines come from the files' own words, in one call; a week number never becomes a date
+    space.add_file(u.id, wid, "tugas.md", "Tenggat: Jumat, 11 Desember 2026 pukul 23.59. Presentasi pada minggu ke-14. "
+                   "Kuis 2025-11-30.", collection="Basis Data")
+    fd = wt.find_deadlines(alone, "Basis Data")
+    assert [d["date"] for d in fd["dates"]] == ["2025-11-30", "2026-12-11"], fd["dates"]
+    assert fd["week_references"] and fd["week_references"][0]["week"] == 14
+    # an answer may not claim what was not made
+    assert _overclaims("Semua tugas telah dibuat di papan.", []) == "no task was created in this run"
+    assert _overclaims("Semua tugas telah dibuat di papan.", [{"type": "task", "id": "t", "title": "x"}]) == ""
+    assert "no page" in _overclaims("Halaman ringkasan sudah dibuat.", [])
     print("swarm ok: orchestrator → 2 Writers in parallel (one per course) → Planner · 2 sourced pages, "
           "2 tasks · agents limited to their own tools · custom agent shared and installed from the gallery · "
           "member load limit enforced")
