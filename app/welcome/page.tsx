@@ -21,6 +21,7 @@ const sans = Geist({ subsets: ["latin"], variable: "--font-lw-sans" });
 
 export const metadata: Metadata = {
   title: { absolute: "LEARIS: study notes that show their sources" },
+  alternates: { canonical: "/" },
   description: "Upload a semester and ask once. AI agents write summaries, papers and deadlines, and every claim quotes the file it came from.",
   openGraph: {
     title: "LEARIS: study notes that show their sources",
@@ -55,7 +56,7 @@ export default function Welcome() {
       {/* ------------------------------------------------------------ nav */}
       <header className="sticky top-3 z-30 mx-auto mt-3 w-full max-w-[1296px] px-4 md:px-6">
         <nav className="flex h-14 items-center justify-between border border-[var(--lw-line)] bg-[var(--lw-paper)]/90 pr-2 pl-4 backdrop-blur-md">
-          <Link href="/welcome" className="flex items-center gap-2" aria-label="LEARIS home">
+          <Link href="/" className="flex items-center gap-2" aria-label="LEARIS home">
             <LearisMark className="size-6 text-[var(--lw-ink)]" />
             <span className="lw-serif text-[24px] leading-none">learis</span>
           </Link>
