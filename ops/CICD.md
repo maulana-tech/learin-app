@@ -1,183 +1,71 @@
-# CI/CD LEARIS lewat SSH: GitHub → EC2
+# CI/CD
 
-Push ke **semua branch** menjalankan CI. PR menuju `main` juga menjalankan CI.
-Deployment hanya berjalan setelah CI lulus untuk push ke `main` atau manual run
-pada `main`. Build memakai GitHub runner Ubuntu x86_64, Node 20, dan Webpack.
-CI memeriksa lint, output agent, self-check Python, serta transport SSH/rollback.
+One workflow, `.github/workflows/deploy.yml`.
 
-Deployment ini tidak memerlukan CloudFormation, Terraform, S3, OIDC, atau
-AWS access key GitHub. `ops/aws-cicd.yaml` adalah alternatif SSM lama dan tidak
-dipakai workflow SSH.
-Tidak perlu upgrade account hanya untuk menjalankan script deployment SSH.
-
-## 1. Siapkan server
-
-Target mengikuti runbook `learis/AGENT-ONLY-EXTERNAL-DEPLOYMENT.md`:
-
-- EC2 Ubuntu **x86_64**, user SSH `ubuntu`, port **22**.
-- Node.js **20** (minimal **20.9.0**) tersedia di `/usr/bin/node`; Python **3.10+**, `python3-venv`,
-  `curl`, `flock`, dan `tar` tersedia. AWS CLI tidak diperlukan untuk deploy SSH.
-- Unit `learis-agent.service` dan `learis-web.service` sudah berjalan sebagai `ubuntu`.
-- User `ubuntu` bisa menjalankan `sudo -n true` tanpa password dan tanpa TTY.
-- `.env` tetap di `/opt/sigap-project/learis/agent/.env`.
-- `.env` dapat berisi `LEARIS_DB=/app/data/sigap.db`; Docker Compose juga memaksa
-  path tersebut agar database berada pada volume `agent_data` dan bertahan saat container
-  dibuat ulang.
-- Jika systemd menggunakan `EnvironmentFile`, gunakan `KEY=value` dengan komentar
-  di baris tersendiri. Jangan memasukkan AWS access key ke `.env`.
-- EC2 bisa mengakses repository dependency Python melalui internet.
-- Agent tidak butuh akses model di server: mahasiswa membawa model sendiri (BYOK).
-  `LEARIS_AI_*` di `.env` opsional sebagai model cadangan.
-
-Verifikasi lewat koneksi SSH admin yang sudah dipercaya:
-
-```bash
-/usr/bin/node --version
-python3 --version
-sudo -n true
-sudo systemctl is-active learis-agent learis-web
-curl --fail http://127.0.0.1:8787/health
-curl --fail http://127.0.0.1:3000/login
-```
-
-Pastikan Nginx tetap mengarah ke frontend 3000 dan backend 8787.
-
-## 2. Buat key deployment khusus
-
-Jalankan di laptop, bukan di GitHub atau lewat chat:
-
-```bash
-mkdir -p ~/.ssh
-ssh-keygen -t ed25519 -N '' -C 'github-learis-deploy' -f ~/.ssh/learis-github-deploy
-```
-
-Melalui sesi SSH admin, tambahkan isi file **`learis-github-deploy.pub`** ke
-`/home/ubuntu/.ssh/authorized_keys` di EC2. Jangan menimpa key admin yang sudah ada.
-Tambahkan prefix `restrict` pada baris key tersebut untuk menonaktifkan forwarding
-serta PTY; SSH noninteraktif dan transfer SFTP/SCP tetap tersedia:
-
-```text
-restrict ssh-ed25519 AAAA... github-learis-deploy
-```
-
-File `.ssh/authorized_keys` harus dimiliki `ubuntu`, permission direktori `.ssh`
-700, permission file `authorized_keys` 600. Key ini menjalankan deploy sebagai
-`ubuntu` dan memakai sudo; perlakukan private key sebagai kredensial server.
-
-Coba koneksi dengan key baru dan host key server yang sudah diverifikasi:
-
-```bash
-ssh -i ~/.ssh/learis-github-deploy -o BatchMode=yes ubuntu@<IP-ATAU-DNS-EC2> 'sudo -n true'
-```
-
-## 3. Ambil host key EC2 yang dipercaya
-
-Di sesi SSH admin yang sudah dipercaya (atau EC2 console yang terautentikasi),
-jalankan pada **server EC2**:
-
-```bash
-printf 'sigap-ec2 '
-sudo cat /etc/ssh/ssh_host_ed25519_key.pub
-```
-
-Salin satu baris hasilnya. Bentuknya:
-
-```text
-sigap-ec2 ssh-ed25519 AAAAC3... root@server
-```
-
-Prefix `sigap-ec2` wajib: workflow memakai `HostKeyAlias=sigap-ec2`. Ini adalah
-**public host key server**, bukan public key deployment yang dibuat di laptop.
-Jangan mengambil key dari koneksi yang belum diverifikasi, dan jangan mematikan
-host key checking ketika mendapat error. Jika server diganti atau host key
-berubah, verifikasi ulang melalui akses admin sebelum mengganti secret.
-
-## 4. Isi konfigurasi GitHub
-
-Repo → **Settings → Secrets and variables → Actions**. Gunakan konfigurasi
-**repository**, sehingga tidak memerlukan pengelolaan environment `production`.
-
-Pada tab **Variables**, klik **New repository variable**:
-
-| Nama | Isi |
+| When | What runs |
 |---|---|
-| `EC2_HOST` | IP publik atau hostname DNS EC2; tanpa `https://`, username, port, atau path |
+| Every push and every PR into `main` | **CI**: eslint, `tsc`, unit tests, Next.js build, the agent service's 22 self-checks, and the deploy script's tests (fake `ssh`/`scp`, no server touched) |
+| Push to `main` (after CI passes) | **Deploy**: build `learis-web` and `learis-agents` images, push them to GHCR, then `ops/deploy-docker-ssh.sh` |
 
-Pada tab **Secrets**, klik **New repository secret**:
+## What the deploy does
 
-| Nama | Isi |
-|---|---|
-| `EC2_SSH_KEY` | Seluruh isi private key `~/.ssh/learis-github-deploy`, termasuk BEGIN/END dan newline |
-| `EC2_KNOWN_HOSTS` | Satu baris public host key server dengan prefix `sigap-ec2` dari langkah 3 |
+`ops/deploy-docker-ssh.sh` connects to `ubuntu@$EC2_HOST` with strict host-key checking. It then:
+1. uploads `docker-compose.yml` to **`/opt/learis`**;
+2. pulls the images;
+3. runs `docker compose up -d`.
 
-Private key harus tanpa passphrase karena workflow noninteraktif. Private key
-hanya dimasukkan melalui GitHub Secrets; jangan commit atau kirim melalui chat.
-`AWS_REGION`, `AWS_ROLE_ARN`, `DEPLOY_BUCKET`, dan `EC2_INSTANCE_ID` tidak dibaca
-oleh workflow SSH. Environment `production` juga tidak dipakai workflow ini.
+The stack has two containers:
+- `learis-agents`: the Python agent service, with SQLite in the `learis_agent_data` volume at `/app/data/learis.db`;
+- `learis-web`: Next.js, on `127.0.0.1:3000` behind nginx (`ops/server-config/nginx-learis.conf`).
 
-## 5. Pastikan jaringan SSH dapat dijangkau
+**The first deploy after the SIGAP → LEARIS rename moves the old install once, keeping all data:**
+1. Copy `/opt/sigap-project/learis/agent/.env` to `/opt/learis/learis/agent/.env`.
+2. Stop the old stack, keeping its volumes as a backup.
+3. Copy the `sigap-project_agent_data` volume into `learis_agent_data`, and rename `sigap.db` → `learis.db`.
+4. Start the new stack. If it fails to start, the old one is started again.
+5. Write `/opt/learis/.migrated` so this never runs twice.
 
-Koneksi SSH dari laptop belum membuktikan runner GitHub dapat masuk. Security
-group, network ACL, firewall OS, dan route EC2 harus mengizinkan port 22 dari
-jalur jaringan runner yang disetujui pengelola. Aturan SSH dengan source **My IP**
-hanya mengizinkan laptop tersebut, bukan runner GitHub.
+The agent service has the same safety net: if `learis.db` is missing and `sigap.db` sits next to it, it adopts it on startup.
 
-Runner GitHub Ubuntu biasa mempunyai IP keluar yang berubah-ubah. Jangan
-mengandalkan IP satu run untuk deploy berikutnya, atau membuka port 22 ke semua
-IP sebagai solusi otomatis. Jika tidak tersedia jalur jaringan yang diizinkan,
-pengaturan runner dengan egress tetap/VPN atau self-hosted runner perlu dilakukan
-sebelum SSH dari GitHub bisa bekerja. Script tidak mengubah security group AWS.
+## Repository settings
 
-## 6. Aktifkan workflow
+| Name | Kind | Value |
+|---|---|---|
+| `EC2_HOST` | variable | The server's public IP or DNS name. Use an **Elastic IP**: a plain public IP changes when the instance is stopped. |
+| `EC2_SSH_KEY` | secret | The private key for `ubuntu@EC2_HOST` |
+| `EC2_KNOWN_HOSTS` | secret | One line, `<alias> <key-type> <key>`, e.g. `learis-ec2 ssh-ed25519 AAAA…`. The alias is read from the line, so an older `sigap-ec2 …` line still works. |
+| `GHCR_PAT` | secret, optional | A token with `read:packages` if the server cannot pull with the workflow token |
 
-Setelah konfigurasi server, GitHub, dan jaringan siap, commit dan push perubahan
-workflow ke `main`. Buka **Actions → CI and deploy EC2** untuk melihat CI/deploy.
-Jika sudah dipush, **Run workflow** dari `main` memulai deployment baru.
+## When the deploy says "Host key verification failed"
 
-Mintalah admin repo membatasi perubahan `main` melalui PR, review, dan required
-status check job `ci`. Job deploy memiliki guard `main`; secret tidak digunakan
-pada job PR atau push ke branch lain. Workflow SSH tidak memiliki approval gate
-environment, sehingga izin push/perubahan workflow ke `main` perlu dikendalikan.
+The machine at `EC2_HOST` presents a different SSH host key than `EC2_KNOWN_HOSTS` holds. Either the
+server was rebuilt, or its IP changed and now belongs to another machine. **Do not turn the check off.**
 
-## Cara deploy dan rollback
+1. In the EC2 console, find the instance and its current public IP (or attach an Elastic IP).
+2. Read its real host key fingerprint from the console: **Actions → Monitor and troubleshoot → Get system log**,
+   the `ssh-ed25519` line between `BEGIN SSH HOST KEY FINGERPRINTS` and `END`.
+3. From your machine, fetch the key and check that its fingerprint matches the console:
+   ```bash
+   ssh-keyscan -t ed25519 <IP> 2>/dev/null | tee /tmp/hostkey
+   ssh-keygen -lf /tmp/hostkey        # must equal the fingerprint from step 2
+   ```
+4. Store it with an alias, and update the host:
+   ```bash
+   sed 's/^[^ ]*/learis-ec2/' /tmp/hostkey | gh secret set EC2_KNOWN_HOSTS
+   gh variable set EC2_HOST --body <IP>
+   ```
+5. Point DNS (`learis.lumbungstack.dev`) at the same IP, then re-run the workflow (`gh run rerun <id>`).
 
-CI memaketkan Next.js standalone, static/public assets, serta file backend,
-prompt, fixture, dan references yang sudah tracked Git. `.env`, virtualenv,
-dan database lokal tidak dimasukkan ke paket.
+## Server `.env`
 
-`ops/deploy-ssh.sh` memverifikasi private key/host key, memeriksa sudo, mengirim
-paket lewat SCP, memverifikasi SHA-256 di EC2, lalu menjalankan `ops/deploy.sh`
-melalui `sudo -n`. Kredensial sementara pada runner dan paket upload dibersihkan.
+Template: `ops/server-config/agent.env.example`. It needs at least `LEARIS_ENV=prod` and a strong
+`LEARIS_SECRET`. Add `AWS_BEARER_TOKEN_BEDROCK` to give everyone a model without their own key.
+Never commit the real file.
 
-Release berada di `/opt/sigap-project/releases/<commit>-<run>-<attempt>`.
-Agent hanya memakai standard library Python, jadi tidak ada dependency yang
-diinstall. Build frontend dilakukan di GitHub, bukan pada EC2 kecil.
-
-Script mengubah symlink `/opt/sigap-project/current`, memasang systemd drop-in
-`10-release.conf`, dan restart dua service. Health check memeriksa service aktif,
-backend `/health`, dan frontend `/login`. Jika gagal, symlink serta drop-in lama
-dipulihkan lalu service direstart; job GitHub tetap gagal. Pada deploy pertama,
-konfigurasi service awal dipulihkan. ENV dan database disimpan di luar release.
-
-Restart menyebabkan jeda singkat. Rollback kode tidak membatalkan perubahan
-schema/data. Endpoint `/health` hanya membuktikan backend hidup; tidak menguji
-panggilan model AI. Release lokal lama tetap disimpan untuk rollback;
-hapus release yang tidak aktif secara berkala agar disk tidak penuh.
-
-## Validasi offline
+## Check locally
 
 ```bash
-bash -n ops/deploy.sh
-bash -n ops/deploy-ssh.sh
-python3 ops/test_deploy.py
-python3 ops/test_deploy_ssh.py
+python3 ops/test_deploy_docker.py
+bash -n ops/deploy-docker-ssh.sh
+docker compose config -q            # the compose file is valid
 ```
-
-Test memakai stub dan direktori sementara, tanpa mengakses EC2/AWS. Test memeriksa
-aktivasi, pemulihan konfigurasi, kegagalan SSH/deploy, host checking, input host,
-secret yang belum diisi, dan pembersihan kredensial sementara.
-
-Referensi:
-- https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets
-- https://docs.github.com/en/actions/reference/runners/github-hosted-runners
-- https://man.openbsd.org/ssh_config
