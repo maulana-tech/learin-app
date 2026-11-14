@@ -1,4 +1,4 @@
-name: CI and deploy EC2
+name: CI and deploy (LEARIS on EC2)
 
 on:
   pull_request:
@@ -25,13 +25,17 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: npm ci
       - run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+      - name: Unit tests
+        run: npm test
       - run: npm run build -- --webpack
       - name: Python self-checks
         working-directory: learis/agent
@@ -39,8 +43,8 @@ jobs:
           LEARIS_ENV: dev
           LEARIS_DB: /tmp/learis-ci.db
         run: python manage.py check
-      - run: python3 ops/test_deploy.py
-      - run: python3 ops/test_deploy_ssh.py
+      - name: Deploy script tests (fake ssh, no server)
+        run: python3 ops/test_deploy_docker.py
 
   deploy:
     needs: ci

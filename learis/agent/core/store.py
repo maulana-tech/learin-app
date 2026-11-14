@@ -223,10 +223,22 @@ def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
 
 
+def _adopt_renamed(p: pathlib.Path) -> None:
+    """The project was called SIGAP: a server that still has data/sigap.db (and no learis.db yet)
+    keeps its data under the new name instead of starting empty. Its WAL files move with it."""
+    old = p.with_name("sigap.db")
+    if p.name == "learis.db" and not p.exists() and old.exists():
+        for suffix in ("", "-wal", "-shm"):
+            src = pathlib.Path(str(old) + suffix)
+            if src.exists():
+                src.rename(pathlib.Path(str(p) + suffix))
+
+
 @contextmanager
 def connect() -> Iterator[sqlite3.Connection]:
     p = pathlib.Path(CFG.database)
     p.parent.mkdir(parents=True, exist_ok=True)
+    _adopt_renamed(p)
     c = sqlite3.connect(p, timeout=10)
     c.row_factory = sqlite3.Row
     c.execute("PRAGMA foreign_keys = ON")

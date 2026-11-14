@@ -43,7 +43,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 __pycache__/
-# The agent service's virtualenv (ENV.md, Run it locally; ops/deploy.sh makes one per release).
+# The agent service's virtualenv (ENV.md, Run it locally).
 .venv/
 *.pyc
 .env
