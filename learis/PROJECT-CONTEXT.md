@@ -1,17 +1,18 @@
 # Skill Gap Radar — Project Context
 
-> File konteks untuk HackGlobal. Dipakai sebagai referensi bersama oleh tim dan sebagai konteks untuk AI/coding agent. Perbarui setiap ada keputusan baru.
+> File konteks proyek. Dipakai sebagai referensi bersama oleh tim dan sebagai konteks untuk AI/coding agent. Perbarui setiap ada keputusan baru.
 >
 > Status implementasi di repo ini ada di bagian paling bawah ("Status di repo").
 
 ## 1. Hackathon
 
-- **Nama:** HackGlobal (multi-week coding festival, mahasiswa dari universitas mitra di berbagai negara).
-- **Tema:** satu tantangan global, peserta bebas memilih masalah nyata. Fokus pada dampak sosial, ekonomi, atau lingkungan. Teknologi bebas (AI, Web, Mobile, Blockchain, IoT).
-- **Arah track yang disebut:** asisten cerdas berbasis AI (NLP, otomasi tugas, rekomendasi personal, interaksi suara) dan platform yang menghubungkan komunitas (keterlibatan komunitas, relawan, pengukuran dampak, berbagi sumber daya).
-- **Keuntungan:** tim lintas universitas mendapat poin bonus. Hadiah total $15.000, magang di startup San Francisco, kesempatan pitching ke investor, dan perjalanan internasional berbayar.
-- **Alur:** pembentukan tim, aktivitas komunitas dan mini challenge, fase build utama, demo day.
-- **Output wajib:** proyek yang berjalan dan siap masuk portofolio, plus demo.
+- **Sekarang (14 Nov 2026): HackOnVibe November 2026 — "Build a Product That Spreads".** Online, internasional, tim 1–4. AI-assisted coding, no-code, template, API dan library open-source boleh.
+- **Tema:** produk IT yang berguna dan dirancang tumbuh lewat sharing dan adopsi organik (viral, self-spreading).
+- **Kategori:** Business Success dan World Impact. Kategori ketiga dinilai dua bulan setelah final berdasarkan bukti keberhasilan nyata; pemenang dua kategori utama dapat mentoring selama dua bulan itu.
+- **Juri:** (mantan) karyawan Telegram, Wise, Salesforce, Yandex, Barclays, MTS (bukan sponsor).
+- **Onboarding wajib:** daftar di HackOnVibe (bukan platform lain), isi GitHub username di halaman pribadi, terima undangan repo tim dari panitia, push "Hello world!" sebelum kickoff.
+- **Jawaban LEARIS untuk tema:** link publik halaman (`/p/…`) dan agent (`/a/…`) yang bisa dibuka tanpa akun, dengan kutipan bukti tiap klaim dan kartu preview untuk WhatsApp/Telegram; signup lewat link dikreditkan ke yang membagikan (`core/growth.py`); "Your reach" per mahasiswa dan `GET /growth` untuk loop produk (k-factor).
+- **Sebelumnya:** HackGlobal 2026 (Polaris × HackCulture), tidak dilanjutkan.
 
 ## 2. Masalah yang dipilih
 

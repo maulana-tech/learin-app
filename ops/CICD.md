@@ -56,6 +56,22 @@ server was rebuilt, or its IP changed and now belongs to another machine. **Do n
    ```
 5. Point DNS (`learis.lumbungstack.dev`) at the same IP, then re-run the workflow (`gh run rerun <id>`).
 
+## Split hosting: web on HackOnVibe, agent service on EC2
+
+For HackOnVibe the web app is built and hosted by the organisers from the team repository
+(`<repo>.hackonvibe.com`), where no environment variables can be set. In production it therefore
+calls `https://api.learis.lumbungstack.dev` (`app/upstream.ts`); `LEARIS_API` still overrides it.
+
+On the server, once per server:
+1. DNS: an `A` record `api.learis.lumbungstack.dev` → the Elastic IP.
+2. `sudo cp ops/server-config/nginx-learis-api.conf /etc/nginx/sites-available/learis-api`,
+   `sudo ln -s /etc/nginx/sites-available/learis-api /etc/nginx/sites-enabled/`,
+   `sudo nginx -t && sudo systemctl reload nginx`.
+3. `sudo certbot --nginx -d api.learis.lumbungstack.dev`.
+4. Check: `curl https://api.learis.lumbungstack.dev/health`.
+
+The compose stack publishes the agent service on `127.0.0.1:8787` only; nginx is the one way in.
+
 ## Server `.env`
 
 Template: `ops/server-config/agent.env.example`. It needs at least `LEARIS_ENV=prod` and a strong

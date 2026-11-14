@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-const UPSTREAM = process.env.LEARIS_API ?? "http://127.0.0.1:8787";
+import { UPSTREAM } from "@/app/upstream";
 
 export async function POST(req: Request) {
   const body = await req.text();

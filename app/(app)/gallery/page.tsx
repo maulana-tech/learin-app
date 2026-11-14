@@ -2,11 +2,13 @@ import { apiResult, currentWorkspace, type CustomAgent } from "@/app/lib";
 import { Chip } from "@/components/dort";
 import { ServiceDown } from "@/components/page-bits";
 import { Empty, PageHeader } from "@/components/shell";
+import { ShareButton } from "@/components/share";
 import { Install } from "./Install";
 
 export const dynamic = "force-dynamic";
 
-export default async function Gallery() {
+export default async function Gallery({ searchParams }: { searchParams: Promise<{ install?: string }> }) {
+  const wanted = (await searchParams).install;
   const [ws, r] = await Promise.all([currentWorkspace(), apiResult<{ agents: CustomAgent[] }>("gallery")]);
   if (!ws || !r.data) return <ServiceDown error={r.error} />;
   return (
@@ -19,7 +21,7 @@ export default async function Gallery() {
         ) : (
           <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {r.data.agents.map((a) => (
-              <li key={a.id} className="bg-inner-grad flex flex-col rounded-lg border p-4">
+              <li key={a.id} id={a.id} className={`bg-inner-grad flex flex-col rounded-lg border p-4 ${a.id === wanted ? "ring-2 ring-[#111] dark:ring-white" : ""}`}>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <p className="text-[14px] font-medium">{a.name}</p>
                   <Chip tone="info">{a.installs} install(s)</Chip>
@@ -32,7 +34,10 @@ export default async function Gallery() {
                 </details>
                 <div className="mt-auto flex items-center justify-between gap-2 pt-3">
                   <span className="text-muted-foreground text-[12px]">by {a.author ?? "someone"}</span>
-                  <Install id={a.id} workspaceName={ws.name} />
+                  <div className="flex items-center gap-1.5">
+                    <ShareButton kind="agent" id={a.id} title={a.name} size="sm" variant="ghost" />
+                    <Install id={a.id} workspaceName={ws.name} />
+                  </div>
                 </div>
               </li>
             ))}

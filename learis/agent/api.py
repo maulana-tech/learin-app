@@ -53,7 +53,7 @@ from urllib.parse import parse_qs, urlparse
 
 import mcp
 from agents import team
-from core import ai, identity, registry, space, store
+from core import ai, growth, identity, registry, space, store
 from core.jobs import SCHEDULER
 from core.worker import POOL
 from core.config import CFG, bind_target
@@ -131,6 +131,8 @@ def signup(_m, b, _h):
     except Exception:                                              # noqa: BLE001
         return 409, {"error": "an account with that email already exists"}
     space.personal(u.id)
+    # The link that brought them (a shared page or agent, a group invite) is credited to its sharer.
+    growth.record_signup(u.id, b.get("ref"))
     return 201, {"token": identity.issue_token(u),
                  "user": {"name": u.name, "email": u.email, "role": u.role}}
 
@@ -453,6 +455,9 @@ def delete_me(_m, b, h):
             else:
                 c.execute("DELETE FROM workspaces WHERE id=?", (gid,))
         c.execute("DELETE FROM members WHERE user_id=?", (u.id,))
+        # their public links stop at once; who they brought in is forgotten
+        c.execute("DELETE FROM shares WHERE created_by=?", (u.id,))
+        c.execute("DELETE FROM referrals WHERE user_id=? OR referrer_id=?", (u.id, u.id))
         # and the account itself: name, email and password hash. Its tokens stop working at once.
         c.execute("DELETE FROM users WHERE id=?", (u.id,))
     return 200, {"deleted": True}
@@ -463,7 +468,8 @@ import workspace_api  # noqa: E402  (registers its routes on this router)
 workspace_api.register(route, _user)
 
 # ----------------------------------------------------------------- server
-PUBLIC = {("GET", "/health"), ("POST", "/login"), ("POST", "/signup")}
+PUBLIC = {("GET", "/health"), ("POST", "/login"), ("POST", "/signup"),
+          ("GET", "/public/page/([A-Za-z0-9_-]+)"), ("GET", "/public/agent/([A-Za-z0-9_-]+)")}
 CORS = {"Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "content-type,authorization,accept,x-learis-ai,x-learis-ws",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"}
@@ -681,6 +687,21 @@ def demo() -> None:
     assert call("POST", "/workspace-agents", {"ws": g["id"], "name": "Bad", "description": "x",
                 "instructions": "long enough instructions here", "tools": ["rm_rf"]})[0] == 400
     assert call("POST", f"/gallery/{ag['id']}/install", {"ws": personal_ws["id"]})[0] == 201
+    # ---- sharing: a public page link, no session to open it, a sign-up credited to the sharer
+    sh = call("POST", f"/share/page/{pg['id']}")[1]
+    assert sh["shared"] and call("POST", f"/share/page/{pg['id']}", headers=h2)[1]["token"] != sh["token"]
+    code, pub = call("GET", f"/public/page/{sh['token']}", {}, headers={})
+    assert code == 200 and pub["title"] == "Catatan" and pub["sources"][0]["quote"] == "Normalisasi mengurangi redundansi"
+    assert call("GET", f"/public/page/{sh['token']}", {"count": "0"}, headers={})[0] == 200
+    assert call("GET", f"/share/page/{pg['id']}")[1]["views"] == 1, "a link preview is not a view"
+    code, friend = call("POST", "/signup", {"email": "teman@kampus.ac.id", "name": "Teman", "password": "pw-long-enough",
+                                            "ref": sh["token"]})
+    assert code == 201 and call("GET", "/reach")[1]["signups"] == 1
+    assert call("GET", "/growth")[1]["referred"] == 1
+    ash = call("POST", f"/share/agent/{ag['id']}")[1]
+    assert call("GET", f"/public/agent/{ash['token']}", {}, headers={})[1]["name"] == "Quiz Maker"
+    assert call("POST", f"/share/page/{pg['id']}/off")[0] == 200
+    assert call("GET", f"/public/page/{sh['token']}", {}, headers={})[0] == 404
     assert len(call("GET", "/tools")[1]["tools"]) >= 10
     assert call("POST", "/ask", {"ws": g["id"], "request": "Ringkas modul"})[0] == 400, "no tool-calling model"
     import workspace_api as wa
