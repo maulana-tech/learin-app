@@ -142,6 +142,10 @@ STRUCTURES: Dict[str, Dict[str, Any]] = {
         ("Pendahuluan", ["pendahuluan"]), ("Tinjauan Pustaka", ["tinjauan pustaka", "landasan teori", "kajian pustaka"]),
         ("Metodologi", ["metodologi", "metode"]), ("Hasil dan Pembahasan", ["hasil"]),
         ("Penutup", ["penutup", "kesimpulan", "simpulan"])]},
+    "jurnal": {"label": "Artikel ilmiah (paper penelitian)", "chapters": False, "journal": True, "sections": [
+        ("Abstrak", ["abstrak", "abstract"]), ("Pendahuluan", ["pendahuluan", "introduction", "latar belakang"]),
+        ("Metode", ["metode", "metodologi", "method"]), ("Hasil dan Pembahasan", ["hasil", "pembahasan", "result"]),
+        ("Kesimpulan", ["kesimpulan", "simpulan", "conclusion", "penutup"])]},
     "proposal": {"label": "Proposal", "chapters": True, "sections": [
         ("Latar Belakang", ["latar belakang", "pendahuluan"]), ("Rumusan Masalah", ["rumusan masalah", "masalah"]),
         ("Tujuan", ["tujuan"]), ("Tinjauan Pustaka", ["tinjauan pustaka", "landasan teori"]),
@@ -194,13 +198,25 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     "ub-skripsi": {"name": "Universitas Brawijaya (UB)", "margins": (4, 3, 4, 3), "lecturer": True},
     "ipb-ppki": {"name": "IPB University (PPKI)", "margins": (3, 3, 4, 3), "lecturer": False},
     "telkom-ta": {"name": "Telkom University (Tel-U)", "margins": (3, 3, 4, 3), "lecturer": True},
+    # journal articles: no cover, 11 pt, single spacing, numbered sections, IEEE [n] citations
+    "jurnal-standar": {"name": "Standar Jurnal Ilmiah Nasional", "margins": (3, 3, 3, 3), "lecturer": False, "journal": True},
+    "jurnal-uajy": {"name": "Jurnal Buana Informatika (UAJY)", "margins": (3, 3, 3, 3), "lecturer": False, "journal": True},
 }
-FONT, SIZE_HALF_PT, LINE, INDENT_CM = "Times New Roman", 24, 360, 1.25    # 12 pt, 1.5 spacing
+FONT = "Times New Roman"
+REPORT_LAYOUT = {"size": 24, "line": 360, "indent": 1.25}     # 12 pt, 1.5 spacing
+JOURNAL_LAYOUT = {"size": 22, "line": 240, "indent": 0.75}    # 11 pt, single spacing
+
+import threading  # noqa: E402
+_layout = threading.local()      # one export per request thread; each sets its own
+
+
+def _L(key: str) -> float:
+    return getattr(_layout, "v", REPORT_LAYOUT)[key]
 
 
 def presets() -> List[Dict[str, Any]]:
     return [{"id": k, "name": v["name"], "margins_cm": dict(zip(("top", "bottom", "left", "right"), v["margins"])),
-             "cover_lecturer": v["lecturer"]} for k, v in PRESETS.items()]
+             "cover_lecturer": v["lecturer"], "journal": bool(v.get("journal"))} for k, v in PRESETS.items()]
 
 
 # ---------------------------------------------------------------- DOCX writer
@@ -251,10 +267,10 @@ def _p(text: str = "", *, style: Optional[str] = None, align: Optional[str] = No
         ppr += "<w:keepNext/>"
     if page_break:
         ppr += "<w:pageBreakBefore/>"
-    ppr += f'<w:spacing w:before="{before}" w:after="{after}" w:line="{line or LINE}" w:lineRule="auto"/>'
+    ppr += f'<w:spacing w:before="{before}" w:after="{after}" w:line="{line or int(_L("line"))}" w:lineRule="auto"/>'
     if indent or left or hanging:
         ppr += (f'<w:ind w:left="{left}"' + (f' w:hanging="{hanging}"' if hanging else "")
-                + (f' w:firstLine="{_tw(INDENT_CM)}"' if indent and not hanging else "") + "/>")
+                + (f' w:firstLine="{_tw(_L("indent"))}"' if indent and not hanging else "") + "/>")
     if align:
         ppr += f'<w:jc w:val="{align}"/>'
     return f"<w:p><w:pPr>{ppr}</w:pPr>{_runs(text, **run) if text else ''}</w:p>"
@@ -272,16 +288,40 @@ def _table(rows: List[List[str]]) -> str:
     return "".join(out) + _p("", line=240)
 
 
-def _body(content: str, title: str, kind: str) -> str:
-    chapters = STRUCTURES.get(kind, STRUCTURES["praktikum"])["chapters"]
+#: Headings a journal article never numbers.
+_UNNUMBERED = ("abstrak", "abstract", "kata kunci", "keywords", "daftar pustaka", "referensi", "references",
+               "ucapan terima kasih", "acknowledg")
+
+
+def _promote(content: str) -> str:
+    """A page whose only '# ' heading is its title, with its sections as '## ', is read one level up,
+    so its sections become chapters (BAB I, or 1. in a paper) as the writer meant."""
+    h1 = re.findall(r"^#\s+\S", content, re.M)
+    if len(h1) <= 1 and re.search(r"^##\s+\S", content, re.M):
+        first = re.search(r"^#\s+.*$", content, re.M)
+        head, rest = (content[:first.end()], content[first.end():]) if first else ("", content)
+        return head + re.sub(r"^#(#{1,5})(\s+)", r"\1\2", rest, flags=re.M)
+    return content
+
+
+def _body(content: str, title: str, kind: str, journal: bool = False) -> str:
+    chapters = STRUCTURES.get(kind, STRUCTURES["praktikum"])["chapters"] and not journal
     out: List[str] = []
-    lines = content.splitlines()
+    lines = _promote(content).splitlines()
     i, chapter, first_h1 = 0, 0, True
+    sub = 0
+    in_abstract = False
     para: List[str] = []
 
     def flush() -> None:
         if para:
-            out.append(_p(" ".join(s.strip() for s in para), indent=True, align="both"))
+            text = " ".join(s.strip() for s in para)
+            km = re.match(r"^\*{0,2}(kata kunci|keywords)\s*:?\*{0,2}\s*:?\s*(.+)$", text, re.I)
+            if km:          # "Kata kunci: a, b, c" with its label in bold
+                out.append(_p(f"**{km.group(1).capitalize()}:** {km.group(2).strip('* ')}", align="both", before=60, after=120,
+                              italic=False))
+            else:
+                out.append(_p(text, indent=not in_abstract, align="both", italic=False, after=120 if in_abstract else 0))
             para.clear()
 
     while i < len(lines):
@@ -315,6 +355,27 @@ def _body(content: str, title: str, kind: str) -> str:
                 i += 1
                 continue
             first_h1 = False
+            if journal:
+                plain_t = _plain(text)
+                unnumbered = plain_t.lower().startswith(_UNNUMBERED)
+                in_abstract = plain_t.lower().startswith(("abstrak", "abstract"))
+                if level == 1:
+                    if unnumbered:
+                        out.append(_p(plain_t.upper() if not in_abstract else plain_t.capitalize(), style="Heading1",
+                                      align="center", bold=True, before=240, after=120, keep_next=True))
+                    else:
+                        chapter, sub = chapter + 1, 0
+                        clean = re.sub(r"^\d+(\.\d+)*\.?\s+", "", plain_t)      # the writer may number it already
+                        out.append(_p(f"{chapter}. {clean.upper()}", style="Heading1", bold=True, before=240, after=120,
+                                      keep_next=True))
+                else:
+                    sub += 1 if level == 2 else 0
+                    clean = re.sub(r"^\d+(\.\d+)*\.?\s+", "", plain_t)
+                    num = f"{chapter}.{sub} " if level == 2 and chapter and not unnumbered else ""
+                    out.append(_p(f"{num}{clean}", style=f"Heading{level}", bold=True, italic=level == 3,
+                                  before=160, after=60, keep_next=True))
+                i += 1
+                continue
             if level == 1:
                 chapter += 1
                 if chapters and not text.upper().startswith("BAB"):
@@ -374,14 +435,37 @@ def _cover(title: str, kind: str, meta: Dict[str, str], preset: Dict[str, Any]) 
     return "".join(parts)
 
 
-def _references(sources: List[Dict[str, Any]], urls: Dict[str, Optional[str]], chapters: bool) -> str:
+def _title_block(title: str, meta: Dict[str, str]) -> str:
+    """A journal article starts with its title, author, affiliation and email: no cover page."""
+    g = lambda k: (meta.get(k) or "").strip()      # noqa: E731
+    out = [_p(title, align="center", bold=True, size=28, after=240, line=240)]
+    out.append(_p(g("author") or "Nama Penulis", align="center", bold=True, line=240))
+    aff = ", ".join(x for x in (g("program"), g("faculty"), g("university")) if x)
+    if aff:
+        out.append(_p(aff, align="center", italic=True, line=240))
+    if g("city"):
+        out.append(_p(g("city"), align="center", italic=True, line=240))
+    if g("email"):
+        out.append(_p(g("email"), align="center", line=240))
+    out.append(_p("", after=240, line=240))
+    return "".join(out)
+
+
+def _references(sources: List[Dict[str, Any]], urls: Dict[str, Optional[str]], chapters: bool,
+                journal: bool = False) -> str:
     if not sources:
         return ""
     out = [_p("DAFTAR PUSTAKA", style="Heading1", align="center", bold=True, page_break=chapters,
               before=360, after=240)]
     for s in sorted(sources, key=lambda x: x["n"]):
         url = urls.get(s["file_id"])
-        text = f"[{s['n']}]\t{s['file_name']}." + (f" {url}." if url else "") + f" Kutipan: “{s['quote'][:300]}”"
+        if journal:     # IEEE: [n] Source, “quoted passage.” [Online]. Available: url
+            q = re.sub(r"^[#>*\-\s]+", "", s["quote"][:300]).rstrip()    # a quoted Markdown heading shows as words
+            q = q if q.endswith((".", "!", "?")) else q + "."      # IEEE: the full stop goes inside the quotes
+            text = f"[{s['n']}]\t{s['file_name']}, “{q}”" + (f" [Online]. Available: {url}" if url else "")
+        else:
+            shown = re.sub(r"^[#>*\-\s]+", "", s["quote"][:300])
+            text = f"[{s['n']}]\t{s['file_name']}." + (f" {url}." if url else "") + f" Kutipan: “{shown}”"
         out.append(_p(text, left=_tw(1), hanging=_tw(1), align="both", after=120))
     return "".join(out)
 
@@ -403,15 +487,29 @@ def docx(user_id: str, pid: str, preset_id: str = "standard", kind: str = "prakt
             urls[s["file_id"]] = None
     title = (meta.get("title") or p["title"]).strip()
     top, bottom, left, right = (_tw(x) for x in preset["margins"])
-    chapters = STRUCTURES[kind]["chapters"]
+    journal = bool(preset.get("journal") or STRUCTURES[kind].get("journal"))
+    chapters = STRUCTURES[kind]["chapters"] and not journal
+    _layout.v = JOURNAL_LAYOUT if journal else REPORT_LAYOUT
+    try:
+        return _docx_parts(p, preset, kind, meta, title, urls, journal, chapters, (top, bottom, left, right))
+    finally:
+        _layout.v = REPORT_LAYOUT
+
+
+def _docx_parts(p: Dict[str, Any], preset: Dict[str, Any], kind: str, meta: Dict[str, str], title: str,
+                urls: Dict[str, Optional[str]], journal: bool, chapters: bool, margins: tuple) -> Dict[str, Any]:
+    top, bottom, left, right = margins
     # the report starts on a new page: a property of its first paragraph, not a stray break character
-    main = _body(p["content"], p["title"], kind) or _p("")
+    main = _body(p["content"], p["title"], kind, journal) or _p("")
     if main.startswith("<w:tbl>"):
         main = '<w:p><w:pPr><w:pageBreakBefore/><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>' + main
     elif "<w:pageBreakBefore/>" not in main[:200]:
         main = main.replace("<w:pPr>", "<w:pPr><w:pageBreakBefore/>", 1)
-    body = _cover(title, kind, meta, preset) + main + _references(p["sources"], urls, chapters)
-    sect = (f'<w:sectPr><w:footerReference w:type="default" r:id="rIdFooter"/><w:titlePg/>'
+    if journal:     # a title block, then straight into the article
+        body = _title_block(title, meta) + main.replace("<w:pageBreakBefore/>", "", 1) + _references(p["sources"], urls, False, True)
+    else:
+        body = _cover(title, kind, meta, preset) + main + _references(p["sources"], urls, chapters)
+    sect = (f'<w:sectPr><w:footerReference w:type="default" r:id="rIdFooter"/>{"" if journal else "<w:titlePg/>"}'
             f'<w:pgSz w:w="11906" w:h="16838"/>'
             f'<w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" '
             f'w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>')
@@ -425,8 +523,8 @@ def docx(user_id: str, pid: str, preset_id: str = "standard", kind: str = "prakt
     styles = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
               '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
               f'<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}" w:cs="{FONT}" w:eastAsia="{FONT}"/>'
-              f'<w:sz w:val="{SIZE_HALF_PT}"/><w:szCs w:val="{SIZE_HALF_PT}"/><w:lang w:val="id-ID"/></w:rPr></w:rPrDefault>'
-              f'<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="{LINE}" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'
+              f'<w:sz w:val="{int(_L("size"))}"/><w:szCs w:val="{int(_L("size"))}"/><w:lang w:val="id-ID"/></w:rPr></w:rPrDefault>'
+              f'<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="{int(_L("line"))}" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'
               '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
               + heading(1, 24, 0) + heading(2, 24, 1) + heading(3, 24, 2) + '</w:styles>')
     footer = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -504,6 +602,29 @@ def demo() -> None:
     doc = z.read("word/document.xml").decode()
     assert 'w:left="2268"' in doc and "DAFTAR PUSTAKA" in doc and "<w:tbl>" in doc and "NIM 2106" in doc
     assert doc.count("Laporan Praktikum Normalisasi".upper()) == 1, "the page title is on the cover only"
+    # a research paper: no cover, title block, Abstrak unnumbered, sections 1., 2., 11 pt single-spaced
+    paper = space.create_page(u.id, wid, "Analisis Normalisasi Basis Data Perpustakaan",
+                              "# Analisis Normalisasi Basis Data Perpustakaan\n\n# Abstrak\n\nPenelitian ini menelaah normalisasi [1].\n\n"
+                              "Kata kunci: normalisasi, 3NF, basis data\n\n# Pendahuluan\n\nLatar belakang.\n\n## Rumusan Masalah\n\nApa?\n\n"
+                              "# Metode Penelitian\n\nStudi pustaka.\n\n# Hasil dan Pembahasan\n\nHasil [1].\n\n# Kesimpulan\n\nSelesai.",
+                              "user:" + u.id, [{"file_id": f["id"], "quote": "tidak ada ketergantungan transitif"}])
+    dj = doctor(u.id, paper["id"], "jurnal")
+    assert not dj["missing_sections"], dj["missing_sections"]
+    j = zipfile.ZipFile(io.BytesIO(docx(u.id, paper["id"], "jurnal-standar", "jurnal",
+                                        {"author": "Rani", "university": "Universitas Indonesia", "email": "rani@ui.ac.id"})["bytes"]))
+    jd = j.read("word/document.xml").decode()
+    st = j.read("word/styles.xml").decode()
+    assert "Disusun oleh" not in jd and "rani@ui.ac.id" in jd, "a paper has a title block, not a cover"
+    assert "1. PENDAHULUAN" in jd and "1.1 Rumusan Masalah" in jd and "4. KESIMPULAN" in jd, "sections are numbered"
+    assert ">Abstrak<" in jd and "1. ABSTRAK" not in jd, "the abstract is not numbered"
+    assert 'w:sz w:val="22"' in st and 'w:line="240"' in st and "<w:titlePg/>" not in jd, "11 pt, single spacing"
+    assert 'w:left="1701"' in jd, "journal margins 3 cm"
+    hp = space.create_page(u.id, wid, "Judul Paper", "# Judul Paper\n\n## Abstrak\n\nRingkas.\n\n## Pendahuluan\n\nLatar.\n\n"
+                           "### Tujuan\n\nTujuan.\n\n## Kesimpulan\n\nSelesai.", "user:" + u.id, [])
+    hd = zipfile.ZipFile(io.BytesIO(docx(u.id, hp["id"], "jurnal-standar", "jurnal", {})["bytes"])).read("word/document.xml").decode()
+    assert "1. PENDAHULUAN" in hd and "1.1 Tujuan" in hd and "2. KESIMPULAN" in hd, "## sections under a title are promoted"
+    d2 = zipfile.ZipFile(io.BytesIO(docx(u.id, p["id"], "ui-skripsi", "praktikum", {})["bytes"]))
+    assert 'w:sz w:val="24"' in d2.read("word/styles.xml").decode(), "a report after a paper is back to 12 pt"
     for bad in ("x", ):
         try:
             docx(u.id, p["id"], bad)
@@ -511,7 +632,7 @@ def demo() -> None:
         except ValueError:
             pass
     print(f"academic ok: claim audit (rule) catches a wrong number · report doctor finds missing sections · "
-          f"DOCX in {len(PRESETS)} campus formats, well-formed, cover + references")
+          f"DOCX in {len(PRESETS)} formats (campus reports and journal papers), well-formed, cover or title block + references")
 
 
 if __name__ == "__main__":
