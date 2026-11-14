@@ -98,13 +98,16 @@ export function ClaimCheck({ pageId }: { pageId: string }) {
 }
 
 type Formats = {
-  presets: { id: string; name: string; margins_cm: Record<string, number>; cover_lecturer: boolean }[];
+  presets: { id: string; name: string; margins_cm: Record<string, number>; cover_lecturer: boolean; journal?: boolean }[];
   kinds: { id: string; label: string; sections: string[] }[];
 };
 const COVER = [
-  ["author", "Nama"], ["nim", "NIM"], ["course", "Mata kuliah"], ["lecturer", "Dosen pengampu"],
+  ["author", "Nama"], ["nim", "NIM"], ["email", "Email"], ["course", "Mata kuliah"], ["lecturer", "Dosen pengampu"],
   ["program", "Program studi"], ["faculty", "Fakultas"], ["university", "Universitas"], ["city", "Kota"], ["year", "Tahun"],
 ] as const;
+/** A journal article has a title block (author, affiliation, email), not a cover. */
+const PAPER_FIELDS = new Set(["author", "email", "program", "faculty", "university"]);
+const REPORT_FIELDS = new Set(["author", "nim", "course", "lecturer", "program", "faculty", "university", "city", "year"]);
 const KEY = "learis.export";
 
 function loadSaved(): Record<string, string> {
@@ -125,6 +128,7 @@ export function ExportWord({ pageId, title }: { pageId: string; title: string })
 
   const set = (k: string, val: string) => setV((x) => ({ ...x, [k]: val }));
   const preset = formats?.presets.find((p) => p.id === (v.preset || "standard"));
+  const paper = (v.kind || "praktikum") === "jurnal" || !!preset?.journal;
 
   async function download() {
     setBusy(true); setError("");
@@ -151,12 +155,16 @@ export function ExportWord({ pageId, title }: { pageId: string; title: string })
         <DialogContent className="bg-card-grad max-w-xl rounded-2xl p-0 shadow-float">
           <DialogHeader className="border-b">
             <DialogTitle className="flex items-center gap-2"><FileDown className="size-4" /> Export to Word</DialogTitle>
-            <DialogDescription className="text-[12.5px]">A .docx with a cover, chapter headings, page numbers and the page&apos;s sources as Daftar Pustaka.</DialogDescription>
+            <DialogDescription className="text-[12.5px]">A .docx with a cover (or, for a paper, a title block), numbered headings, page numbers and the page&apos;s sources as Daftar Pustaka.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[65vh] space-y-4 overflow-y-auto p-5">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5"><span className="text-text text-[12.5px]">Jenis laporan</span>
-                <Select value={v.kind || "praktikum"} onValueChange={(x) => set("kind", x)} ariaLabel="Report type"
+                <Select value={v.kind || "praktikum"} ariaLabel="Report type"
+                  onValueChange={(x) => setV((o) => ({ ...o, kind: x,
+                    // a paper goes with a journal format, a report with a campus one
+                    preset: x === "jurnal" ? (o.preset?.startsWith("jurnal") ? o.preset : "jurnal-standar")
+                      : (o.preset?.startsWith("jurnal") ? "standard" : o.preset) }))}
                   options={(formats?.kinds ?? [{ id: "praktikum", label: "Laporan praktikum", sections: [] }]).map((k) => ({ value: k.id, label: k.label, hint: k.sections.slice(0, 3).join(", ") + (k.sections.length > 3 ? "…" : "") }))} />
               </label>
               <label className="space-y-1.5"><span className="text-text text-[12.5px]">Format kampus</span>
@@ -169,14 +177,14 @@ export function ExportWord({ pageId, title }: { pageId: string; title: string })
               <Input value={v.title ?? ""} placeholder={title} onChange={(e) => set("title", e.target.value)} />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
-              {COVER.filter(([k]) => k !== "lecturer" || preset?.cover_lecturer !== false).map(([k, label]) => (
+              {COVER.filter(([k]) => (paper ? PAPER_FIELDS : REPORT_FIELDS).has(k) && (k !== "lecturer" || preset?.cover_lecturer !== false)).map(([k, label]) => (
                 <label key={k} className="space-y-1.5"><span className="text-text text-[12.5px]">{label}</span>
                   <Input value={v[k] ?? ""} onChange={(e) => set(k, e.target.value)} placeholder={k === "year" ? String(new Date().getFullYear()) : ""} />
                 </label>
               ))}
             </div>
             <p className="text-muted-foreground text-[11.5px] leading-relaxed">
-              Times New Roman 12 pt, spasi 1,5, A4{preset?.margins_cm.top ? `, margin ${preset.margins_cm.top}-${preset.margins_cm.bottom}-${preset.margins_cm.left}-${preset.margins_cm.right} cm` : ""}.
+              {paper ? "Artikel jurnal: tanpa sampul, judul + penulis + afiliasi, Abstrak, bagian bernomor, sitasi IEEE [n], Times New Roman 11 pt, spasi tunggal, A4" : "Times New Roman 12 pt, spasi 1,5, A4"}{preset?.margins_cm.top ? `, margin ${preset.margins_cm.top}-${preset.margins_cm.bottom}-${preset.margins_cm.left}-${preset.margins_cm.right} cm` : ""}.
               Campus presets are starting points from laporan-generator: check your faculty&apos;s latest guide. Your cover details stay in this browser.
             </p>
             {error && <p className="text-bad flex items-center gap-2 text-[12.5px]"><Dot tone="bad" />{error}</p>}
