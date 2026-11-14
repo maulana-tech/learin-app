@@ -190,7 +190,10 @@ def _chat(cfg: Config, messages: List[dict], max_tokens: int, json_mode: bool,
         try:
             with urllib.request.urlopen(req, timeout=wait) as r:
                 data = json.loads(r.read().decode("utf-8"))
-        except (TimeoutError, socket.timeout):
+        except (TimeoutError, socket.timeout, ConnectionError, urllib.error.URLError) as first:
+            if isinstance(first, urllib.error.HTTPError):
+                raise                       # the server answered: not a blip, handled below
+            time.sleep(2)                   # a dropped connection or a DNS hiccup: try once more
             with urllib.request.urlopen(req, timeout=wait) as r:
                 data = json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
