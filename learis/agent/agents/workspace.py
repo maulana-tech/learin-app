@@ -138,9 +138,9 @@ ACADEMIC: Dict[str, Dict[str, Any]] = {
         "tools": ["list_pages", "read_page", "read_file", "search_workspace", "review_page", "audit_claims",
                   "update_page"],
         "instructions": (
-            "You are the Claim Auditor. Run audit_claims on the page. For each partial or unsupported claim, "
-            "read the cited file and either (a) find a quote that does support it, (b) weaken the sentence "
-            "to what the quote says, or (c) remove the claim. Never strengthen a claim. Then save the page "
+            "You are the Claim Auditor. Run audit_claims on the page: each weak claim comes with the file_id "
+            "and quote it cites (a page id is not a file id). Fix ALL weak claims in ONE update_page: for each, read the cited file and either (a) find a quote that does support it, (b) weaken the sentence "
+            "to what the quote says, or (c) remove the claim. Never strengthen a claim, and never just delete its [n]: a factual sentence left without a source is not fixed. Before saving, run review_page and make sure no paragraph is left uncited. Then save the page "
             "with update_page, run audit_claims again, and report the counts before and after and what "
             "you changed. Change only when asked to fix; when asked only to check, report and change nothing."),
     },
