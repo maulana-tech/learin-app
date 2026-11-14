@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
   // The service answers and does not know you: sign in. It does not answer at
   // all: stay, and let the pages say the service is down.
-  if (health && !user) redirect("/login");
+  if (health && !user) redirect("/welcome");
   const list = user ? (await api<{ workspaces: Workspace[] }>("workspaces"))?.workspaces ?? [] : [];
   const picked = jar.get(WS_COOKIE)?.value;
   const current = list.find((w) => w.id === picked) ?? list.find((w) => w.kind === "personal");
