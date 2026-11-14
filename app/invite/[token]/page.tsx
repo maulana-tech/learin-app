@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function Invite({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   // Outside the app shell so someone without an account lands here, signs up, and comes back.
-  if (!(await me())) redirect(`/login?next=/invite/${token}`);
+  if (!(await me())) redirect(`/login?mode=up&ref=${token}&next=/invite/${token}`);
   const r = await apiResult<{ workspace_id: string; name: string; purpose: string | null; members: number; expires_at: string }>(`invites/${token}`);
   return (
     <main className="flex min-h-svh w-full flex-1 items-center justify-center px-4 py-10">

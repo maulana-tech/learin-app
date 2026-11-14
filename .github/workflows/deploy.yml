@@ -36,7 +36,7 @@ jobs:
         run: npx tsc --noEmit -p .
       - name: Unit tests
         run: npm test
-      - run: npm run build -- --webpack
+      - run: npm run build
       - name: Python self-checks
         working-directory: learis/agent
         env:

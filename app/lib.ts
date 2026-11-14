@@ -1,4 +1,6 @@
-export const UPSTREAM = process.env.LEARIS_API ?? "http://127.0.0.1:8787";
+import { UPSTREAM } from "./upstream";
+
+export { UPSTREAM };
 
 /* ------------------------------------------------------------------ types */
 export type Me = { name: string; email: string; role: string };
@@ -225,3 +227,29 @@ export type AgentDetail = {
   pages: { id: string; title: string; updated_at: string }[];
   activity: { run_id: string; seq: number; agent: string; kind: string; message: string; at: string; request: string | null }[];
 };
+
+/* --------------------------------------------------------- public links */
+export type PublicPage = {
+  title: string; content: string; sources: { n: number; file_name: string; quote: string }[];
+  by_agent: boolean; shared_by: string; updated_at: string; checks: { sources: number; cited: number }; ref: string;
+};
+export type PublicAgent = {
+  id: string; name: string; description: string; instructions: string; tools: string[];
+  installs: number; author: string; shared_by: string; ref: string;
+};
+export type Reach = {
+  links: number; views: number; signups: number; agent_installs: number; invite_joins: number;
+  top: { token: string; kind: "page" | "agent"; views: number; signups: number; title: string }[];
+};
+
+/** A public link's content: no session is sent, so it is exactly what a stranger sees.
+ * `count: false` for link previews and metadata, which are not a person opening it. */
+export async function publicLink<T>(kind: "page" | "agent", token: string, count = true): Promise<T | null> {
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(token)) return null;
+  try {
+    const r = await fetch(`${UPSTREAM}/public/${kind}/${token}${count ? "" : "?count=0"}`, { cache: "no-store" });
+    return r.ok ? ((await r.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}

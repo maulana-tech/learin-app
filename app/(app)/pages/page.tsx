@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { apiResult, currentWorkspace, when, who, type Member, type PageRow, type WorkspaceDetail } from "@/app/lib";
+import { apiResult, currentWorkspace, when, who, type Member, type PageRow, type Reach, type WorkspaceDetail } from "@/app/lib";
+import { ReachCard } from "@/components/reach";
 import { Chip } from "@/components/dort";
 import { ServiceDown } from "@/components/page-bits";
 import { Empty, PageHeader } from "@/components/shell";
@@ -12,7 +13,10 @@ export default async function PagesPage() {
   const ws = await currentWorkspace();
   const r = ws ? await apiResult<{ pages: PageRow[] }>(`pages?ws=${ws.id}`) : null;
   if (!ws || !r?.data) return <ServiceDown error={r?.error} />;
-  const detail = (await apiResult<WorkspaceDetail>(`workspaces/${ws.id}`)).data;
+  const [detail, reach] = await Promise.all([
+    apiResult<WorkspaceDetail>(`workspaces/${ws.id}`).then((x) => x.data),
+    apiResult<Reach>("reach").then((x) => x.data),
+  ]);
   const names = Object.fromEntries((detail?.members ?? []).map((m: Member) => [m.user_id, m.name ?? "member"]));
 
   return (
@@ -20,6 +24,7 @@ export default async function PagesPage() {
       <PageHeader title="Pages"
         lead="Summaries, reports and study guides. Pages agents write cite their files as [n], and the Reviewer flags any claim without a source."
         aside={<NewPage />} />
+      <div className="mt-6"><ReachCard reach={reach} /></div>
       <div className="mt-6">
         {r.data.pages.length === 0 ? (
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">

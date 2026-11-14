@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Dot } from "@/components/dort";
 import { Field } from "@/components/field";
@@ -20,6 +20,13 @@ export default function Login() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // A shared link sends people here with ?mode=up&ref=<token>: open on sign-up, and credit the sharer.
+  const [ref, setRef] = useState("");
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("mode") === "up") setMode("up"); // eslint-disable-line react-hooks/set-state-in-effect
+    setRef(q.get("ref") ?? "");
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +36,7 @@ export default function Login() {
       const res = await fetch(mode === "in" ? "/api/login" : "/api/signup", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(mode === "in" ? { email, password } : { email, password, name }),
+        body: JSON.stringify(mode === "in" ? { email, password } : { email, password, name, ref: ref || undefined }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "could not sign in");
       const next = new URLSearchParams(window.location.search).get("next");

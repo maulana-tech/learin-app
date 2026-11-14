@@ -19,6 +19,9 @@ write.
     GET  /workspace-agents · POST /workspace-agents · POST /workspace-agents/{id} · .../delete
     GET  /tools                                               what a custom agent may use
     GET  /gallery · POST /gallery/{id}/install
+    GET/POST /share/{page|agent}/{id} · POST .../off        my public link to it, its views and sign-ups
+    GET  /public/{page|agent}/{token}                       what anyone with the link sees (no session)
+    GET  /reach · GET /growth                                my reach; the product's loop
     POST /ask {request}                                       the Orchestrator → {run_id}
     GET  /group-impact · POST /group-report                   numbers, and a report page from them
 """
@@ -29,7 +32,7 @@ import threading
 from typing import Dict, Optional
 
 from agents import workspace as aw
-from core import academic, ai, registry, space, store
+from core import academic, ai, growth, registry, space, store
 from core.worker import POOL
 from sources import github
 
@@ -203,6 +206,37 @@ def register(route, user_of) -> None:  # noqa: C901 - one place for every worksp
     def del_page(m, _b, h):
         space.delete_page(user_of(h).id, m.group(1))
         return 200, {"deleted": m.group(1)}
+
+    # ---------------------------------------------------- sharing (growth)
+    @route("GET", r"/share/(page|agent)/([A-Za-z0-9_]+)")
+    def share_status(m, _b, h):
+        return 200, growth.status(user_of(h).id, m.group(1), m.group(2))
+
+    @route("POST", r"/share/(page|agent)/([A-Za-z0-9_]+)")
+    def share_on(m, _b, h):
+        return 200, growth.share(user_of(h).id, m.group(1), m.group(2))
+
+    @route("POST", r"/share/(page|agent)/([A-Za-z0-9_]+)/off")
+    def share_off(m, _b, h):
+        return 200, growth.unshare(user_of(h).id, m.group(1), m.group(2))
+
+    @route("GET", r"/public/page/([A-Za-z0-9_-]+)")
+    def public_page(m, b, _h):
+        # No session: this is the link a student sent a friend. A preview bot (count=0) is not a view.
+        return 200, growth.public_page(m.group(1), count=str(b.get("count", "1")) != "0")
+
+    @route("GET", r"/public/agent/([A-Za-z0-9_-]+)")
+    def public_agent(m, b, _h):
+        return 200, growth.public_agent(m.group(1), count=str(b.get("count", "1")) != "0")
+
+    @route("GET", r"/reach")
+    def my_reach(_m, _b, h):
+        return 200, growth.reach(user_of(h).id)
+
+    @route("GET", r"/growth")
+    def product_loop(_m, _b, h):
+        user_of(h)
+        return 200, growth.loop()
 
     # ----------------------------------------------------------------- tasks
     @route("GET", r"/tasks")

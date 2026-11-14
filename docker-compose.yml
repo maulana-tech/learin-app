@@ -18,6 +18,9 @@ services:
       - LEARIS_DB=/app/data/learis.db
     env_file:
       - ./learis/agent/.env
+    # Public through nginx as api-learis.utdi.me, for the web app hosted on HackOnVibe.
+    ports:
+      - "127.0.0.1:8787:8787"
     volumes:
       - agent_data:/app/data
     networks:

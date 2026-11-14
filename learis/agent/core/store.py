@@ -181,6 +181,23 @@ CREATE TABLE IF NOT EXISTS files (
   uploaded_by  TEXT NOT NULL,
   uploaded_at  TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS shares (
+  token        TEXT PRIMARY KEY,    -- the public link: /p/<token> (a page) or /a/<token> (an agent)
+  kind         TEXT NOT NULL,       -- page | agent
+  target_id    TEXT NOT NULL,
+  created_by   TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  revoked      INTEGER NOT NULL DEFAULT 0,
+  views        INTEGER NOT NULL DEFAULT 0,
+  signups      INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_shares_target ON shares(kind, target_id, revoked);
+CREATE TABLE IF NOT EXISTS referrals (
+  user_id      TEXT PRIMARY KEY,    -- who signed up
+  via          TEXT NOT NULL,       -- share:<token> | invite:<token>
+  referrer_id  TEXT NOT NULL,       -- whose link brought them
+  created_at   TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS agents (
   id           TEXT PRIMARY KEY,
   workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,

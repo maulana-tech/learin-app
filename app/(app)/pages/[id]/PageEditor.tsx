@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { call } from "@/lib/ai-config";
 import { ClaimCheck, ExportWord } from "@/components/academic";
+import { ShareButton } from "@/components/share";
 
 export function PageEditor({ page, startEditing }: { page: PageFull; startEditing: boolean }) {
   const router = useRouter();
@@ -52,6 +53,7 @@ export function PageEditor({ page, startEditing }: { page: PageFull; startEditin
             </Button>
             <ClaimCheck pageId={page.id} />
             <ExportWord pageId={page.id} title={page.title} />
+            <ShareButton kind="page" id={page.id} title={page.title} />
             <Button variant="ghost" size="icon" aria-label="Delete page" onClick={async () => {
               if (!confirm(`Delete "${page.title}"?`)) return;
               await call(`pages/${page.id}/delete`, {});
