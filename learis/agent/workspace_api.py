@@ -194,7 +194,7 @@ def register(route, user_of) -> None:  # noqa: C901 - one place for every worksp
     @route("GET", r"/pages/([A-Za-z0-9_]+)/export")
     def export_page(m, b, h):
         meta = {k: str(b.get(k) or "")[:200] for k in ("title", "author", "nim", "lecturer", "course", "program",
-                                                       "faculty", "university", "city", "year")}
+                                                       "faculty", "university", "city", "year", "email")}
         out = academic.docx(user_of(h).id, m.group(1), str(b.get("preset") or "standard"),
                             str(b.get("kind") or "praktikum"), meta)
         return 200, {"__file__": out["bytes"], "name": out["name"], "type": out["type"]}
