@@ -16,7 +16,7 @@ One workflow, `.github/workflows/deploy.yml`.
 
 The stack has two containers:
 - `learis-agents`: the Python agent service, with SQLite in the `learis_agent_data` volume at `/app/data/learis.db`;
-- `learis-web`: Next.js, on `127.0.0.1:3000` behind nginx (`ops/server-config/nginx-learis.conf`).
+- `learis-web`: Next.js, on `127.0.0.1:3000` behind nginx (sites written by `ops/server-setup.sh`).
 
 **The first deploy after the SIGAP → LEARIS rename moves the old install once, keeping all data:**
 1. Copy `/opt/sigap-project/learis/agent/.env` to `/opt/learis/learis/agent/.env`.
@@ -62,15 +62,27 @@ For HackOnVibe the web app is built and hosted by the organisers from the team r
 (`<repo>.hackonvibe.com`), where no environment variables can be set. In production it therefore
 calls `https://api.learis.lumbungstack.dev` (`app/upstream.ts`); `LEARIS_API` still overrides it.
 
-On the server, once per server:
-1. DNS: an `A` record `api.learis.lumbungstack.dev` → the Elastic IP.
-2. `sudo cp ops/server-config/nginx-learis-api.conf /etc/nginx/sites-available/learis-api`,
-   `sudo ln -s /etc/nginx/sites-available/learis-api /etc/nginx/sites-enabled/`,
-   `sudo nginx -t && sudo systemctl reload nginx`.
-3. `sudo certbot --nginx -d api.learis.lumbungstack.dev`.
-4. Check: `curl https://api.learis.lumbungstack.dev/health`.
+On the server: DNS `A` records for both `learis.lumbungstack.dev` and `api.learis.lumbungstack.dev`
+→ the Elastic IP, nginx sites from `ops/server-setup.sh`, then
+`sudo certbot --nginx -d learis.lumbungstack.dev -d api.learis.lumbungstack.dev`.
+Check: `curl https://api.learis.lumbungstack.dev/health`.
 
 The compose stack publishes the agent service on `127.0.0.1:8787` only; nginx is the one way in.
+
+## A new server
+
+1. EC2 → **Launch instance**: Ubuntu Server 24.04 LTS, `t3.small` (2 GB; `t3.micro` works with the
+   setup's swap), a key pair, 20 GB gp3. Security group: SSH 22 from your IP, HTTP 80 and HTTPS 443
+   from anywhere. **Advanced details → User data**: paste `ops/server-setup.sh`.
+2. Attach an **Elastic IP**. Point both DNS names at it.
+3. Repository settings: `EC2_SSH_KEY` (the key pair's private key), `EC2_KNOWN_HOSTS` (host key, checked
+   against the console as above), `EC2_HOST` (the Elastic IP).
+4. Wait for `LEARIS server setup finished` in `/var/log/cloud-init-output.log`, run certbot (above),
+   add `AWS_BEARER_TOKEN_BEDROCK` to `/opt/learis/learis/agent/.env` if wanted, then run the workflow
+   (`gh workflow run deploy.yml --ref main`).
+
+A new server starts with an empty database. The deploy's one-time move from `/opt/sigap-project`
+does nothing there.
 
 ## Server `.env`
 
