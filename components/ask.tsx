@@ -10,6 +10,7 @@ import { AgentBadge } from "@/components/agent-card";
 import { AgentPanel } from "@/components/agent-panel";
 import { Dot } from "@/components/dort";
 import { Markdown } from "@/components/markdown";
+import { SpeakButton, VoiceButton } from "@/components/voice";
 import { Button } from "@/components/ui/button";
 import { call, useAIConfig } from "@/lib/ai-config";
 import { useServerAI } from "@/lib/server-ai";
@@ -46,6 +47,7 @@ export function Ask({ workspaceName, endpoint = "ask", examples = EXAMPLES, spea
   const cfg = useAIConfig();
   const server = useServerAI();
   const [text, setText] = useState("");
+  const voiceBase = useRef<string | null>(null);
   const [run, setRun] = useState<AskRun | null>(null);
   const [error, setError] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +93,11 @@ export function Ask({ workspaceName, endpoint = "ask", examples = EXAMPLES, spea
           className="text-fg placeholder:text-muted-foreground/80 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none" />
         <div className="flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2">
+            <VoiceButton disabled={busy} onText={(spoken, done) => {
+              if (voiceBase.current === null) voiceBase.current = text;
+              setText([voiceBase.current, spoken].filter(Boolean).join(" "));
+              if (done) voiceBase.current = null;
+            }} />
             <ModelPicker />
             {noTools && <span className="text-warn hidden truncate text-[11.5px] sm:inline">{speaker} needs a model that can call tools</span>}
           </span>
@@ -121,6 +128,7 @@ export function Ask({ workspaceName, endpoint = "ask", examples = EXAMPLES, spea
             <div className={cn("bg-card-grad rounded-lg border p-4 shadow-soft")}>
               <p className="text-muted-foreground mb-1 flex items-center gap-2 text-[12px]"><AgentBadge nickname={speaker} size="xs" showTooltip={false} />{speaker}</p>
               <div className="text-[14px] leading-relaxed"><Markdown>{run.answer}</Markdown></div>
+              <SpeakButton text={run.answer ?? ""} className="mt-2" />
               <ArtifactLinks items={artifacts} />
             </div>
           )}
