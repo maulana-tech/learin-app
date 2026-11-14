@@ -8,6 +8,8 @@ member is already over their week.
 """
 from __future__ import annotations
 
+import re
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from core import space
@@ -66,6 +68,43 @@ def read_file(ctx: Ctx, file_id: str, offset: int = 0) -> Dict[str, Any]:
     nxt = offset + READ_LIMIT if offset + READ_LIMIT < len(f["text"]) else None
     return {"file_id": file_id, "name": f["name"], "collection": f["collection"], "note": UNTRUSTED,
             "text": part, "next_offset": nxt}
+
+
+_MONTHS = {"januari": 1, "februari": 2, "maret": 3, "april": 4, "mei": 5, "juni": 6, "juli": 7, "agustus": 8,
+           "september": 9, "oktober": 10, "november": 11, "desember": 12, "january": 1, "february": 2, "march": 3,
+           "may": 5, "june": 6, "july": 7, "august": 8, "october": 10, "december": 12}
+_DATE = re.compile(r"\b(\d{1,2})\s+(" + "|".join(_MONTHS) + r")\s+(\d{4})\b|\b(\d{4})-(\d{2})-(\d{2})\b", re.I)
+_WEEK = re.compile(r"\bminggu\s+ke-?\s*(\d{1,2})\b", re.I)
+
+
+@tool("find_deadlines", "reader",
+      "Every date the workspace's files state (e.g. 'Jumat, 11 Desember 2026'), as YYYY-MM-DD with its file, "
+      "course and the sentence it is in; plus week references ('minggu ke-14') that have no date. One call "
+      "reads all files: use it before planning tasks from deadlines.",
+      {"collection": {"type": "string", "description": "only this course (optional)"}}, [])
+def find_deadlines(ctx: Ctx, collection: Optional[str] = None) -> Dict[str, Any]:
+    dates, weeks = [], []
+    for f in space.files(ctx.user_id, _ws(ctx)):
+        if collection and (f.get("collection") or "") != collection:
+            continue
+        text = space.file(ctx.user_id, f["id"])["text"]
+        for line in re.split(r"(?<=[.!?])\s+|\n", text):
+            for m in _DATE.finditer(line):
+                try:
+                    if m.group(1):
+                        d = date(int(m.group(3)), _MONTHS[m.group(2).lower()], int(m.group(1)))
+                    else:
+                        d = date(int(m.group(4)), int(m.group(5)), int(m.group(6)))
+                except ValueError:
+                    continue
+                dates.append({"date": d.isoformat(), "file_id": f["id"], "file": f["name"],
+                              "course": f.get("collection"), "sentence": line.strip()[:240]})
+            for m in _WEEK.finditer(line):
+                weeks.append({"week": int(m.group(1)), "file": f["name"], "course": f.get("collection"),
+                              "sentence": line.strip()[:200]})
+    dates.sort(key=lambda x: x["date"])
+    return {"dates": dates[:60], "week_references": weeks[:40],
+            "note": "Make one task per stated date. Week references have no date: never turn them into one."}
 
 
 @tool("search_workspace", "reader", "Keyword search over the workspace's files and pages, with snippets.",
@@ -226,8 +265,9 @@ def audit_claims(ctx: Ctx, page_id: str) -> Dict[str, Any]:
 @tool("report_doctor", "reviewer",
       "Check a page as an academic report: are the required sections there for its kind (praktikum: Tujuan, "
       "Dasar Teori, Alat dan Bahan, Langkah Kerja, Hasil, Pembahasan, Kesimpulan; makalah; skripsi BAB I-V; "
-      "proposal), how long is it, and are its sources sound. Read-only.",
-      {"page_id": {"type": "string"}, "kind": {"type": "string", "enum": ["praktikum", "makalah", "skripsi", "proposal"]}},
+      "proposal; jurnal: a research paper with Abstrak, Pendahuluan, Metode, Hasil dan Pembahasan, Kesimpulan), "
+      "how long is it, and are its sources sound. Read-only.",
+      {"page_id": {"type": "string"}, "kind": {"type": "string", "enum": ["praktikum", "makalah", "skripsi", "proposal", "jurnal"]}},
       ["page_id"])
 def report_doctor(ctx: Ctx, page_id: str, kind: str = "praktikum") -> Dict[str, Any]:
     from core import academic
@@ -237,6 +277,6 @@ def report_doctor(ctx: Ctx, page_id: str, kind: str = "praktikum") -> Dict[str, 
 
 
 #: What a custom agent may be given: every workspace tool.
-WORKSPACE_TOOLS = ["list_collections", "list_files", "read_file", "search_workspace", "list_pages",
+WORKSPACE_TOOLS = ["list_collections", "list_files", "read_file", "search_workspace", "find_deadlines", "list_pages",
                    "read_page", "create_page", "update_page", "list_tasks", "list_members", "create_task",
                    "update_task", "review_page", "audit_claims", "report_doctor"]
