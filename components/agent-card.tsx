@@ -1,8 +1,4 @@
-import { Crown, ShieldBan } from "lucide-react";
 import Link from "next/link";
-
-import type { Agent } from "@/app/lib";
-import { Badge } from "@/components/ui/badge";
 
 /* ========================================================================== *
  * Authentic bloub.vercel.app SVG Avatar Engine (Grok-style bot shapes & eyes)
@@ -301,37 +297,36 @@ type AgentBotStyle = {
 };
 
 /**
- * Each of the 12 SIGAP agents gets a distinct Bloub silhouette, expression, and color
- * tailored to their role on the supply-chain response team.
+ * Each LEARIS agent gets a distinct Bloub silhouette and expression (avatar engine from AERA).
+ * The three core roles are fixed; library specialists have their own; a
+ * custom role falls back to one picked from its name, so it is stable.
  */
 const AGENT_BOT_STYLES: Record<string, AgentBotStyle> = {
-  // 1. Arya (Supervisor / Team Lead) — Classic Grok ink-black sphere, confident leader
-  Arya: { shape: "cercle", expression: "attentif", color: "#0a0a0c", rotDeg: 0 },
-  // 2. Elsa (Impact) — Orange rounded triangle, wide-eyed alert on disruption impact
-  Elsa: { shape: "triangle", expression: "surpris", color: "#f08a24", rotDeg: 0 },
-  // 3. Dara (Demand) — Rose-pink cloud, curious head-tilt tracking demand shifts
-  Dara: { shape: "nuage", expression: "curieux", color: "#e152b0", rotDeg: -6 },
-  // 4. Iris (Inventory / Stock Validity) — Turquoise squircle crate, focused inspector
-  Iris: { shape: "squircle", expression: "neutre", color: "#2fbfa0", rotDeg: -8 },
-  // 5. Clint (Sourcing) — Emerald capsule, upbeat scout finding replacement sources
-  Clint: { shape: "capsule", expression: "heureux", color: "#3ecf8e", rotDeg: -14 },
-  // 6. Prita (Procurement) — Violet hexagon, shrewd one-brow-raised quote negotiator
-  Prita: { shape: "hexagone", expression: "mefiant", color: "#8b5cf6", rotDeg: 12 },
-  // 7. Milo (Logistics) — Ocean-blue droplet, energetic maritime tracker
-  Milo: { shape: "goutte", expression: "excite", color: "#3b93f0", rotDeg: 0 },
-  // 8. Kira (Compliance / Veto) — Crimson diamond shield, fierce rule enforcer
-  Kira: { shape: "diamond", expression: "colere", color: "#e8483f", rotDeg: 0 },
-  // 9. Tara (Simulation / Costing) — Amber-gold pebble, proud & precise calculator
-  Tara: { shape: "galet", expression: "fier", color: "#f0b429", rotDeg: 15 },
-  // 10. Otto (Precedent / Memory) — Warm brown egg, wise seen-it-all historian
-  Otto: { shape: "egg", expression: "somnolent", color: "#8b5e3c", rotDeg: -8 },
-  // 11. Bram (Execution / SAP) — Electric cyan pentagon, cheerful action executor
-  Bram: { shape: "pentagone", expression: "hilare", color: "#06b6d4", rotDeg: 8 },
-  // 12. Vega (Exposure / Risk Scanner) — Royal-indigo octagon with large wide-open scanner eyes
-  Vega: { shape: "octogone", expression: "effraye", color: "#4f46e5", rotDeg: 0 },
+  // The workspace team. Monochrome: each is told apart by its shape and face, not its colour.
+  Orchestrator: { shape: "cercle", expression: "attentif", color: "#111111", rotDeg: 0 },
+  Reader: { shape: "goutte", expression: "curieux", color: "#2b2b2b", rotDeg: 0 },
+  Writer: { shape: "squircle", expression: "neutre", color: "#3a3a3a", rotDeg: -8 },
+  Planner: { shape: "hexagone", expression: "attentif", color: "#4a4a4a", rotDeg: 12 },
+  Reviewer: { shape: "diamond", expression: "mefiant", color: "#1f1f1f", rotDeg: 0 },
+  "Skill Gap Radar": { shape: "galet", expression: "fier", color: "#555555", rotDeg: 15 },
+  // The Skill Gap pack's own agents.
+  "Skill Evidence": { shape: "pentagone", expression: "curieux", color: "#333333", rotDeg: 8 },
+  Roadmap: { shape: "octogone", expression: "attentif", color: "#404040", rotDeg: 0 },
+  Profile: { shape: "egg", expression: "heureux", color: "#262626", rotDeg: -8 },
 };
 
-const FALLBACK_STYLES: AgentBotStyle[] = Object.values(AGENT_BOT_STYLES);
+/** Shapes and faces for agents users build, picked from the name so each stays the same. */
+const CUSTOM_STYLES: AgentBotStyle[] = [
+  { shape: "capsule", expression: "heureux", color: "#2f2f2f", rotDeg: -14 },
+  { shape: "nuage", expression: "heureux", color: "#454545", rotDeg: -6 },
+  { shape: "triangle", expression: "excite", color: "#1a1a1a", rotDeg: 0 },
+  { shape: "pentagone", expression: "hilare", color: "#3d3d3d", rotDeg: 8 },
+  { shape: "octogone", expression: "mefiant", color: "#2a2a2a", rotDeg: 0 },
+  { shape: "egg", expression: "curieux", color: "#505050", rotDeg: -8 },
+  { shape: "galet", expression: "fier", color: "#363636", rotDeg: 15 },
+];
+
+
 
 function renderBloubGeometry(style: AgentBotStyle) {
   const radii = SHAPES[style.shape] ?? SHAPES.cercle;
@@ -367,24 +362,14 @@ const GEOMETRY_CACHE = new Map<string, ReturnType<typeof renderBloubGeometry>>()
 function getBotGeometry(nickname: string) {
   const cached = GEOMETRY_CACHE.get(nickname);
   if (cached) return cached;
-  const style =
-    AGENT_BOT_STYLES[nickname] ??
-    FALLBACK_STYLES[nickname.charCodeAt(0) % FALLBACK_STYLES.length]!;
+  // "Writer · Basis Data" is the Writer: a parallel label keeps its agent's face.
+  const base = nickname.split(" · ")[0];
+  const sum = [...base].reduce((n, ch) => n + ch.charCodeAt(0), 0);
+  const style = AGENT_BOT_STYLES[base] ?? CUSTOM_STYLES[sum % CUSTOM_STYLES.length]!;
   const geom = renderBloubGeometry(style);
   GEOMETRY_CACHE.set(nickname, geom);
   return geom;
 }
-
-/** Per-agent badge colour, kept exported for any callers that still import hue. */
-const HUES = [
-  "bg-sky-500/15 text-sky-700 dark:text-sky-400",
-  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  "bg-rose-500/15 text-rose-700 dark:text-rose-400",
-  "bg-teal-500/15 text-teal-700 dark:text-teal-400",
-];
-export const hue = (s: string) => HUES[s.charCodeAt(0) % HUES.length];
 
 export function AgentBadge({
   nickname,
@@ -399,19 +384,19 @@ export function AgentBadge({
   large?: boolean;
   size?: "xs" | "sm" | "lg";
   showTooltip?: boolean;
-  /** The role, e.g. "Impact". A name alone does not say what the agent does. */
+  /** The role, e.g. "Researcher". A name alone does not say what the agent does. */
   title?: string;
   /** Makes the badge a link. The hover lift already promises one. */
   href?: string;
   /**
    * "end" hangs the tooltip off the badge's right edge instead of centring it.
    * A row of badges pinned to the right margin clips a centred tooltip: the
-   * last one read "Vega · Risk Scann" before this existed.
+   * last one read "Quality Review · Quality Rev" before this existed.
    */
   align?: "center" | "end";
 }) {
   const { bodyPath, eyes, color } = getBotGeometry(nickname);
-  const isInk = color === "#0a0a0c";
+  const isInk = color === "#111111";
   const isXs = size === "xs";
   const sizeClass = isXs
     ? "size-4"
@@ -459,56 +444,17 @@ export function AgentBadge({
               align === "end" ? "right-3" : "left-1/2 -translate-x-1/2"
             }`}
           />
-          {title ? `${nickname} · ${title}` : nickname}
+          {title && title !== nickname ? `${nickname} · ${title}` : nickname}
         </span>
       )}
     </>
   );
 
   return href ? (
-    <Link href={href} className={wrapClass} aria-label={title ? `${nickname}, ${title}` : nickname}>
+    <Link href={href} className={wrapClass} aria-label={title && title !== nickname ? `${nickname}, ${title}` : nickname}>
       {body}
     </Link>
   ) : (
     <span className={wrapClass}>{body}</span>
-  );
-}
-
-export function AgentCard({ a }: { a: Agent }) {
-  const complete = a.installed === a.tool_count;
-  return (
-    <Link
-      href={`/agents/${a.code}`}
-      className="hover:border-foreground/30 hover:bg-muted/30 group block rounded-lg border p-4 transition-colors"
-    >
-      <div className="flex items-start gap-3">
-        <AgentBadge nickname={a.nickname} large />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h3 className="font-medium leading-none">{a.nickname}</h3>
-            <span className="text-muted-foreground text-xs">{a.title}</span>
-            {a.lead && <Crown className="size-3.5 shrink-0" />}
-            {a.veto && (
-              <Badge variant="outline" className="h-5 gap-1 px-1.5 font-mono text-[9px]">
-                <ShieldBan className="size-2.5" />
-                veto
-              </Badge>
-            )}
-          </div>
-          <p className="text-muted-foreground mt-1.5 line-clamp-2 text-xs leading-relaxed">
-            {a.brief}
-          </p>
-          <p
-            className={`mt-2 font-mono text-[10px] ${
-              complete ? "text-muted-foreground" : "text-amber-700 dark:text-amber-400"
-            }`}
-          >
-            {a.installed}/{a.tool_count} tools
-            {!a.ready && " · no prompt"}
-            {a.used_in > 0 && ` · ${a.used_in} disruptions`}
-          </p>
-        </div>
-      </div>
-    </Link>
   );
 }

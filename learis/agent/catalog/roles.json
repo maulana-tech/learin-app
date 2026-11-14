@@ -1,0 +1,56 @@
+{
+  "_note": "Target roles for the demo. 'core' skills are what nearly every posting for the role asks for; 'plus' skills appear often enough to move a match. Weights are the team's judgement, checked against the sample postings in jobs.json.",
+  "roles": [
+    {
+      "id": "junior-web-developer",
+      "name": "Junior Web Developer",
+      "summary": "Builds and maintains web interfaces and the APIs behind them, in a team that reviews each other's code.",
+      "requires": [
+        {"skill": "html", "level": "core", "weight": 3},
+        {"skill": "css", "level": "core", "weight": 3},
+        {"skill": "javascript", "level": "core", "weight": 3},
+        {"skill": "git", "level": "core", "weight": 3},
+        {"skill": "react", "level": "core", "weight": 3},
+        {"skill": "responsive-design", "level": "core", "weight": 2},
+        {"skill": "http", "level": "core", "weight": 2},
+        {"skill": "rest-api", "level": "core", "weight": 2},
+        {"skill": "sql", "level": "core", "weight": 2},
+        {"skill": "programming-basics", "level": "core", "weight": 2},
+        {"skill": "dom", "level": "plus", "weight": 1},
+        {"skill": "typescript", "level": "plus", "weight": 2},
+        {"skill": "nextjs", "level": "plus", "weight": 1},
+        {"skill": "nodejs", "level": "plus", "weight": 2},
+        {"skill": "testing", "level": "plus", "weight": 1},
+        {"skill": "deployment", "level": "plus", "weight": 1},
+        {"skill": "accessibility", "level": "plus", "weight": 1},
+        {"skill": "tailwind", "level": "plus", "weight": 1},
+        {"skill": "auth", "level": "plus", "weight": 1},
+        {"skill": "agile", "level": "plus", "weight": 1}
+      ]
+    },
+    {
+      "id": "data-analyst",
+      "name": "Data Analyst",
+      "summary": "Turns business questions into queries, cleans the data, and explains what it shows to people who will act on it.",
+      "requires": [
+        {"skill": "sql", "level": "core", "weight": 3},
+        {"skill": "excel", "level": "core", "weight": 3},
+        {"skill": "statistics", "level": "core", "weight": 3},
+        {"skill": "data-viz", "level": "core", "weight": 3},
+        {"skill": "python", "level": "core", "weight": 2},
+        {"skill": "pandas", "level": "core", "weight": 2},
+        {"skill": "bi-tools", "level": "core", "weight": 2},
+        {"skill": "data-storytelling", "level": "core", "weight": 2},
+        {"skill": "database-design", "level": "plus", "weight": 1},
+        {"skill": "git", "level": "plus", "weight": 1},
+        {"skill": "machine-learning-basics", "level": "plus", "weight": 1},
+        {"skill": "programming-basics", "level": "plus", "weight": 1}
+      ]
+    }
+  ],
+  "regions": [
+    {"id": "id", "name": "Indonesia"},
+    {"id": "sg", "name": "Singapore"},
+    {"id": "remote", "name": "Remote / global"}
+  ]
+}

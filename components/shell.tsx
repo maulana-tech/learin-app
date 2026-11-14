@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
 /* Page furniture for the operations console.
@@ -20,7 +22,7 @@ export function PageHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b pb-4 md:gap-x-8 md:gap-y-4 md:pb-6">
       <div className="min-w-0 max-w-2xl">
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
+        <h1 className="text-xl font-medium tracking-tight md:text-2xl">{title}</h1>
         {lead && (
           <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed md:mt-2 md:text-sm">{lead}</p>
         )}
@@ -89,7 +91,7 @@ export function Fact({
           "min-w-0 truncate text-right text-xs",
           mono && "font-mono tabular-nums",
           tone === "quiet" && "text-muted-foreground",
-          tone === "warn" && "text-amber-700 dark:text-amber-400",
+          tone === "warn" && "text-warn ",
         )}
       >
         {value}
@@ -100,7 +102,11 @@ export function Fact({
 
 /** An empty state that says why it is empty and what would fill it.
  *  The product's whole claim is that it does not pretend, so neither does this. */
-export function Empty({ what, why, fix }: { what: string; why: string; fix?: string }) {
+export function Empty({ what, why, fix, action }: {
+  what: string; why: string; fix?: string;
+  /** the next step: a link or a button */
+  action?: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-dashed px-5 py-8">
       <p className="text-sm font-medium">{what}</p>
@@ -110,6 +116,7 @@ export function Empty({ what, why, fix }: { what: string; why: string; fix?: str
           {fix}
         </p>
       )}
+      {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
     </div>
   );
 }
@@ -117,14 +124,23 @@ export function Empty({ what, why, fix }: { what: string; why: string; fix?: str
 /** A number that carries weight. Named Metric, not Figure, because charts.tsx
  *  already owns Figure as the chart wrapper. */
 export function Metric({
-  value, label, note, className,
-}: { value: string; label: string; note?: string; className?: string }) {
+  value, label, note, className, href,
+}: { value: string; label: string; note?: string; className?: string;
+  /** the list this figure summarises */
+  href?: string }) {
+  const body = (
+    <>
+      <p className="text-muted-foreground text-xs">{label}{href && <span aria-hidden> →</span>}</p>
+      <p className="mt-1.5 font-mono text-xl font-medium tabular-nums">{value}</p>
+      {note && <p className="text-muted-foreground mt-1 text-xs leading-relaxed break-words">{note}</p>}
+    </>
+  );
+  // min-w-0: in a grid a long unbroken note (an id, a hash) must wrap, not push into the next column.
+  if (!href) return <div className={cn("min-w-0", className)}>{body}</div>;
   return (
-    <div className={className}>
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <p className="mt-1.5 font-mono text-xl font-semibold tabular-nums">{value}</p>
-      {note && <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{note}</p>}
-    </div>
+    <Link href={href} className={cn("hover:bg-muted/40 focus-visible:ring-ring -m-2 block min-w-0 rounded-md p-2 outline-none focus-visible:ring-2", className)}>
+      {body}
+    </Link>
   );
 }
 

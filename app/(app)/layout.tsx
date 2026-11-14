@@ -1,51 +1,32 @@
-import { AppSidebar } from "@/components/app-sidebar";
-import { Breadcrumbs } from "@/components/breadcrumbs";
-import { NotificationToast } from "@/components/notification-toast";
-import { ThemeToggle } from "@/components/theme";
-import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { api, me } from "@/app/lib";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { api, me, type Workspace } from "@/app/lib";
+import { SideNav } from "@/components/side-nav";
+import { NAV_COOKIE, WS_COOKIE } from "@/lib/nav";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  // `mode` is a separate read because /health is public: whether you may
-  // CHANGE the data source depends on who you are, and that belongs behind
-  // the session, not in an unauthenticated payload.
-  const [user, health, mode] = await Promise.all([
-    me(),
-    api<{
-      env: string; sap_ready: boolean; model_ready: boolean;
-      data_mode?: "live" | "demo"; sap_key_set?: boolean;
-    }>("health"),
-    api<{ mode: "live" | "demo"; may_change: boolean }>("mode"),
+  const [user, health, jar] = await Promise.all([
+    me(), api<{ env: string; server_ai: boolean; server_ai_model?: string | null; server_ai_provider?: string | null }>("health"), cookies(),
   ]);
-  // Every route but /health needs a session now, so a page without one shows
-  // nothing but errors. When the service answers and says who you are not,
-  // the login page is the only useful thing to show. When it does not answer
-  // at all, stay: the pages say the service is down, which is the real news.
+  // The service answers and does not know you: sign in. It does not answer at
+  // all: stay, and let the pages say the service is down.
   if (health && !user) redirect("/login");
+  const list = user ? (await api<{ workspaces: Workspace[] }>("workspaces"))?.workspaces ?? [] : [];
+  const picked = jar.get(WS_COOKIE)?.value;
+  const current = list.find((w) => w.id === picked) ?? list.find((w) => w.kind === "personal");
+  const roster = current ? (await api<{ agents: { id: string; name: string; pack?: boolean; group?: string }[] }>(`workspace-agents?ws=${current.id}`))?.agents ?? [] : [];
 
   return (
-    <SidebarProvider>
-      <AppSidebar
-        user={user ?? undefined}
-        connection={health ?? undefined}
-        mayChangeMode={!!mode?.may_change}
-      />
-      <SidebarInset>
-        <header className="bg-background/80 sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="min-w-0 flex-1">
-            <Breadcrumbs />
-          </div>
-          <div className="ml-auto shrink-0">
-            <ThemeToggle />
-          </div>
-        </header>
-        {children}
-      </SidebarInset>
-      <NotificationToast />
-    </SidebarProvider>
+    <div className="flex min-h-dvh flex-col md:flex-row">
+      <SideNav user={user ?? undefined} connection={health ?? undefined} workspaces={list} current={current}
+        agents={roster.filter((a) => !a.pack).map((a) => ({ id: a.id, name: a.name, group: a.group }))}
+        collapsed={jar.get(NAV_COOKIE)?.value === "slim"} />
+      <div className="flex min-w-0 flex-1 flex-col px-2 pb-2 md:py-3 md:pr-3 md:pl-0">
+        <div className="bg-card-grad flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border border-white/40 shadow-float">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }

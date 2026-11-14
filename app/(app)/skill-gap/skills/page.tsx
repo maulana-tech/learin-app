@@ -1,0 +1,74 @@
+import { apiResult, type Skill } from "@/app/lib";
+import { EmptyState, Page, ServiceDown, Stat } from "@/components/page-bits";
+import { PageHeader } from "@/components/shell";
+import { Confidence, KIND_LABEL, MethodTag, StatusPill, statusOf } from "@/components/skill-bits";
+import { Chip } from "@/components/dort";
+
+export const dynamic = "force-dynamic";
+
+export default async function SkillsPage() {
+  const r = await apiResult<{ skills: Skill[]; hidden: number }>("skills");
+  if (!r.data) return <ServiceDown error={r.error} />;
+  const { skills, hidden } = r.data;
+  const byCat = new Map<string, Skill[]>();
+  for (const s of skills) byCat.set(s.category, [...(byCat.get(s.category) ?? []), s]);
+
+  return (
+    <Page>
+      <PageHeader title="Skills"
+        lead="Every skill here comes with the words that prove it and how sure we are. A course name is a weak hint; a project that uses the skill is strong. Nothing is listed without a source."
+        aside={skills.length > 0 && (
+          <span className="text-muted-foreground text-sm">
+            {skills.length} skill(s) · <span className="text-foreground font-medium">{hidden} hidden</span> (not on your profile)
+          </span>
+        )} />
+
+      {skills.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState title="No skills proven yet" body="Add evidence and run the agents. Each skill the Skill Evidence Agent finds will show here with its quote."
+            href="/skill-gap/evidence" cta="Add evidence" />
+        </div>
+      ) : (
+        <div className="mt-6 space-y-8">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Stat label="Skills proven" value={skills.length} />
+            <Stat label="Hidden skills" value={hidden} note="not on your profile yet" />
+            <Stat label="Strong (60%+)" value={skills.filter((s) => s.confidence >= 0.6).length} />
+            <Stat label="Categories" value={byCat.size} />
+          </div>
+          {[...byCat.entries()].map(([cat, list]) => (
+            <section key={cat}>
+              <h2 className="flex items-center gap-2 text-[13px] font-medium">{cat}<span className="text-muted-foreground font-mono text-[11px] font-normal">{list.length}</span><span className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" /></h2>
+              <ul className="mt-2 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                {list.map((s) => (
+                  <li key={s.skill_id} className="bg-card-grad min-w-0 rounded-xl border p-4 shadow-soft transition-shadow hover:shadow-float">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[14px] font-medium">{s.name}</span>
+                      <StatusPill status={statusOf(s.confidence)} />
+                      {s.hidden && <Chip tone="info">hidden skill</Chip>}
+                      {s.verified && <Chip tone="ok">verified</Chip>}
+                    </div>
+                    <Confidence value={s.confidence} className="mt-2" />
+                    <ul className="mt-3 space-y-2">
+                      {s.evidence.slice(0, 3).map((e) => (
+                        <li key={e.id} className="bg-inner-grad rounded-md border-l-2 border-l-[#111] px-2.5 py-1.5">
+                          <p className="text-xs leading-relaxed">&ldquo;{e.quote}&rdquo;</p>
+                          <p className="text-muted-foreground mt-0.5 text-[11px]">
+                            {e.document_title} · {KIND_LABEL[e.document_kind] ?? e.document_kind} · {Math.round(e.confidence * 100)}% · <MethodTag method={e.method} />
+                          </p>
+                        </li>
+                      ))}
+                      {s.evidence.length > 3 && (
+                        <li className="text-muted-foreground text-[11px]">+{s.evidence.length - 3} more source(s)</li>
+                      )}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+    </Page>
+  );
+}

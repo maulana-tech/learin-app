@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
@@ -14,21 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SIGAP Decision queue",
+  title: { default: "LEARIS", template: "%s · LEARIS" },
   description:
-    "Autonomous supply-disruption response. Investigates the impact, assembles the "
-    + "options, strikes out the ones that break the rules, then executes into SAP "
-    + "once approved.",
+    "LEARIS: an agentic workspace for students and teams. Ask once; an Orchestrator splits the "
+    + "work across agents that read your files, write sourced pages, plan tasks and check every claim.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
+      className={`${outfit.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col dot-grid">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

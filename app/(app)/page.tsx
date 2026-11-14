@@ -1,98 +1,26 @@
-import { api, idr, type Board, type RunRow } from "@/app/lib";
-import { AutoRefresh } from "@/components/auto-refresh";
-import { DisruptionCard } from "@/components/disruption-card";
-import { StatusBadge } from "@/components/status-badge";
-import { Badge } from "@/components/ui/badge";
+import { api, currentWorkspace, type RosterAgent } from "@/app/lib";
+import { Chat, type ChatThread, type ChatTurn } from "@/components/chat";
+import { ServiceDown } from "@/components/page-bits";
 
 export const dynamic = "force-dynamic";
 
-export default async function Queue() {
-  const [data, health] = await Promise.all([
-    api<{ runs: RunRow[]; board?: Board }>("runs"),
-    api<{ env: string; sap_ready: boolean; model_ready: boolean;
-          data_mode?: "live" | "demo"; sap_key_set?: boolean }>("health"),
+export default async function Assistant({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
+  const ws = await currentWorkspace();
+  if (!ws) return <ServiceDown />;
+  const { c } = await searchParams;
+  const [roster, threads, convo] = await Promise.all([
+    api<{ agents: RosterAgent[] }>(`workspace-agents?ws=${ws.id}`),
+    api<{ conversations: ChatThread[] }>(`conversations?ws=${ws.id}`),
+    c ? api<{ turns: ChatTurn[] }>(`conversations/${c}`) : Promise.resolve(null),
   ]);
-
-  if (!data) {
-    return (
-      <main className="w-full px-6 py-16">
-        <h1 className="text-xl font-semibold">The agent service is not responding</h1>
-        <pre className="mt-4 rounded-lg border border-border bg-card p-4 font-mono text-sm">
-          cd sigap/agent{"\n"}python3 api.py
-        </pre>
-      </main>
-    );
-  }
-
-  const runs = data.runs;
-  // The board comes back already sorted by what is owed, so the top of the
-  // screen is the thing most owed, not the thing most recent.
-  const board = data.board;
-
+  const agents = (roster?.agents ?? []).filter((a) => !a.pack).map((a) => ({ id: a.id, name: a.name, description: a.description }));
+  const id = convo ? c ?? null : null;
+  /* A chat is not a document on a page, it is the page: it takes the whole
+   * panel, so the transcript scrolls against a composer that stays put. */
   return (
-    <main className="w-full px-4 py-4 md:px-6 md:py-8">
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4 md:gap-4 md:pb-5">
-        <div>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight md:mt-2 md:text-2xl">Supply disruptions</h1>
-          {/* One line that says whether to open anything. It may only read
-              "nothing needs a person" when nothing waits, nothing is held,
-              nothing failed and nothing owes an outcome — a board that says
-              all clear while four handlings sit held is believed once. */}
-          <p className={`mt-1 text-xs md:text-sm ${
-            board?.clear ? "text-emerald-700 dark:text-emerald-400"
-                         : board?.needs_a_person ? "text-amber-700 dark:text-amber-400"
-                         : "text-muted-foreground"}`}>
-            {board?.line ?? `${runs.length} handlings`}
-          </p>
-          {board && board.needs_a_person > 0 && (
-            <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
-              {runs.length} handlings · {idr(board.value_idr)} waiting on a person
-            </p>
-          )}
-        </div>
-        {health && (
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <AutoRefresh active={runs.some((r) => r.status === "running")} />
-            <Badge variant="outline" className="font-mono text-[10px]">{health.env}</Badge>
-            {/* "not set" would be a lie in demo mode: the key is set, the
-                tools are simply told not to call it. */}
-            <StatusBadge status={health.sap_ready ? "done" : "held"}>
-              SAP{" "}
-              {health.sap_ready
-                ? "connected"
-                : health.data_mode === "demo"
-                  ? "off in demo"
-                  : health.sap_key_set
-                    ? "not answering"
-                    : "not set"}
-            </StatusBadge>
-            <StatusBadge status={health.model_ready ? "done" : "held"}>
-              model {health.model_ready ? "ready" : "not set"}
-            </StatusBadge>
-          </div>
-        )}
-      </header>
-
-      {runs.length === 0 ? (
-        <div className="mt-10 rounded-lg border border-dashed border-border p-8">
-          <p className="text-sm text-muted-foreground">No events yet. Send one:</p>
-          <pre className="mt-3 overflow-x-auto rounded-lg border border-border bg-card p-4 font-mono text-xs">
-{`curl -X POST localhost:8787/events \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H 'content-type: application/json' \\
-  -d '{"kind":"port_closure","title":"Ningbo closed 6 days",
-       "trigger":"maritime advisory","payload":{"port":"CNNGB"}}'`}
-          </pre>
-        </div>
-      ) : (
-        <ul className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {runs.map((r) => (
-            <li key={r.id} className="flex">
-              <DisruptionCard r={r} />
-            </li>
-          ))}
-        </ul>
-      )}
+    <main className="flex min-h-[calc(100dvh-4rem)] w-full flex-1 md:h-[calc(100dvh-1.5rem)] md:min-h-0">
+      <Chat key={id ?? "new"} conversationId={id} initialTurns={convo?.turns ?? []} threads={threads?.conversations ?? []}
+        agents={agents} workspaceName={ws.name} />
     </main>
   );
 }
