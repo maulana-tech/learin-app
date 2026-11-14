@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { call, useAIConfig } from "@/lib/ai-config";
 import { useServerAI } from "@/lib/server-ai";
 import { ModelPicker } from "@/components/model-picker";
+import { SpeakButton, VoiceButton } from "@/components/voice";
 import { AttachButton, AttachChips, SentFiles, dropProps, splitAttached, useAttachments, withAttached } from "@/components/attach";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +66,7 @@ export function Chat({ conversationId, initialTurns, threads, agents, workspaceN
   const [steps, setSteps] = useState<Record<string, RunStep[]>>({});
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const att = useAttachments();
+  const voiceBase = useRef<string | null>(null);
   const [over, setOver] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const last = turns[turns.length - 1];
@@ -158,6 +160,11 @@ export function Chat({ conversationId, initialTurns, threads, agents, workspaceN
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           <AttachButton onFiles={(f) => void att.add(f)} disabled={busy} />
+          <VoiceButton disabled={busy} onText={(spoken, done) => {
+            if (voiceBase.current === null) voiceBase.current = text;
+            setText([voiceBase.current, spoken].filter(Boolean).join(" "));
+            if (done) voiceBase.current = null;
+          }} />
           <ModelPicker />
           {noModel && <span className="text-warn hidden truncate text-[11.5px] sm:inline">needs a model that can call tools</span>}
         </span>
@@ -268,6 +275,7 @@ export function Chat({ conversationId, initialTurns, threads, agents, workspaceN
                           <div className="bg-inner-grad rounded-lg border p-4">
                             <div className="text-[14px] leading-relaxed"><Markdown>{t.answer || "Done."}</Markdown></div>
                             <ArtifactLinks items={t.summary?.artifacts ?? []} />
+                            <SpeakButton text={t.answer || ""} className="mt-2" />
                           </div>
                         </>
                       )}
