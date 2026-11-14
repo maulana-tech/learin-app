@@ -55,15 +55,6 @@
     repeating-radial-gradient(circle at 100% 0, transparent 0 9px, rgba(22, 22, 22, 0.07) 9px 10px);
 }
 
-/* screenshots stacked in depth, as in a pile of papers */
-.lw-stack { perspective: 1800px; }
-.lw-sheet {
-  transform-style: preserve-3d;
-  transform: rotateX(24deg);
-  transform-origin: 50% 100%;
-  box-shadow: 0 30px 60px -20px rgba(20, 30, 25, 0.35);
-}
-
 /* entrance on scroll: bits.tsx adds .is-in once an element is in view */
 @media (prefers-reduced-motion: no-preference) {
   .lw-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -71,11 +62,9 @@
   .lw-rise { animation: lw-rise 1.1s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .lw-rise-2 { animation: lw-rise 1.1s 0.12s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .lw-rise-3 { animation: lw-rise 1.1s 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .lw-settle { animation: lw-settle 1.6s 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .lw-progress { animation: lw-progress var(--lw-step, 6s) linear both; }
 }
 @keyframes lw-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-@keyframes lw-settle { from { opacity: 0; transform: translateY(60px) rotateX(40deg); } to { opacity: 1; transform: rotateX(24deg); } }
 @keyframes lw-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .lw-btn { transition: transform 0.15s ease, background-color 0.2s ease; }

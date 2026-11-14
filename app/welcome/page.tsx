@@ -9,6 +9,8 @@ import {
 
 import { LearisMark } from "@/components/learis-mark";
 import { ClaimDemo, Reveal, Steps } from "./bits";
+import { CountUp, Drift, HeroStage, SmoothScroll, Words } from "./motion";
+import "lenis/dist/lenis.css";
 import "./welcome.css";
 
 /* The public front door. Signed-in people go straight to the app; everyone else lands here.
@@ -53,6 +55,8 @@ const PACK = [
 export default function Welcome() {
   return (
     <div className={`lw lw-grain relative w-full flex-1 overflow-x-clip ${serif.variable} ${sans.variable}`}>
+      <SmoothScroll />
+      <Drift />
       {/* ------------------------------------------------------------ nav */}
       <header className="sticky top-3 z-30 mx-auto mt-3 w-full max-w-[1296px] px-4 md:px-6">
         <nav className="flex h-14 items-center justify-between border border-[var(--lw-line)] bg-[var(--lw-paper)]/90 pr-2 pl-4 backdrop-blur-md">
@@ -73,8 +77,8 @@ export default function Welcome() {
 
       <main className="relative z-10">
         {/* ----------------------------------------------------------- hero */}
-        <section className="lw-frame mx-auto max-w-[1296px] px-4 pt-20 md:px-6 md:pt-24">
-          <div className="mx-auto max-w-[920px] text-center">
+        <section className="lw-frame mx-auto max-w-[1296px] px-4 pt-20 md:min-h-[100dvh] md:px-6 md:pt-24">
+          <div data-hero-copy className="mx-auto max-w-[920px] text-center">
             <h1 className="lw-serif lw-rise text-[46px] leading-[1.02] sm:text-[64px] lg:text-[84px]">
               Every sentence, with the line that proves it.
             </h1>
@@ -87,23 +91,9 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* a stack of real screens, tipped back like papers on a desk */}
-          <div className="lw-stack relative mx-auto mt-14 max-w-[1080px] md:mt-16">
-            <div className="lw-settle lw-sheet relative overflow-hidden rounded-[6px] border border-[var(--lw-line)] bg-white">
-              <Image src="/landing/page.webp" alt="A LEARIS page: a research paper on database normalisation, each claim numbered, sources quoted on the right"
-                width={2880} height={1800} priority sizes="(min-width: 1080px) 1080px, 100vw" className="h-auto w-full" />
-            </div>
-            <div aria-hidden className="absolute -right-3 top-[14%] hidden translate-x-full flex-col items-start gap-1 lg:flex">
-              <span className="h-px w-24 bg-[var(--lw-ink)]/40" />
-              <span className="lw-mono text-[12px] tracking-[0.1em] uppercase">Source [1]</span>
-              <span className="lw-mono text-[11px] text-[var(--lw-ink-3)]">modul-normalisasi.md</span>
-            </div>
-            <div aria-hidden className="absolute -left-3 top-[58%] hidden -translate-x-full flex-col items-end gap-1 lg:flex">
-              <span className="h-px w-24 bg-[var(--lw-ink)]/40" />
-              <span className="lw-mono text-[12px] tracking-[0.1em] uppercase">Quote checked</span>
-              <span className="lw-mono text-[11px] text-[var(--lw-ink-3)]">word for word</span>
-            </div>
-          </div>
+          {/* real screens lying back like papers on a desk; scrolling stands them up (motion.tsx) */}
+          <HeroStage />
+          <div className="h-16 md:h-24" />
         </section>
 
         {/* ----------------------------------------------------- the numbers */}
@@ -113,7 +103,7 @@ export default function Welcome() {
               Read, quoted, checked, shared
             </p>
           </div>
-          <div className="lw-stripe" />
+          <div data-drift="stripe" className="lw-stripe" />
           <div className="mx-auto grid max-w-[1296px] grid-cols-1 px-4 md:grid-cols-3 md:px-6">
             {[
               ["400", "characters, the longest a quote may be. A source proves one sentence, never a whole file."],
@@ -121,7 +111,7 @@ export default function Welcome() {
               ["14", "campus and journal formats for the Word export, from UI and ITB to a journal paper."],
             ].map(([n, t], k) => (
               <Reveal key={n} className={`py-10 md:px-8 md:py-14 ${k ? "md:border-l md:border-dashed md:border-[var(--lw-line)]" : "md:pl-0"}`}>
-                <p className="lw-serif text-[76px] leading-none md:text-[96px]">{n}</p>
+                <p className="lw-serif text-[76px] leading-none tabular-nums md:text-[96px]"><CountUp value={Number(n)} /></p>
                 <p className="mt-4 max-w-[34ch] text-[15px] leading-relaxed text-[var(--lw-ink-2)]">{t}</p>
               </Reveal>
             ))}
@@ -132,7 +122,7 @@ export default function Welcome() {
         <section className="lw-rule">
           <div className="lw-frame mx-auto grid max-w-[1296px] gap-10 px-4 py-20 md:grid-cols-2 md:gap-16 md:px-12 md:py-28">
             <Reveal>
-              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[54px]">Students don&apos;t need more answers. They need ones they can check.</h2>
+              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[54px]"><Words text="Students don't need more answers. They need ones they can check." /></h2>
             </Reveal>
             <Reveal className="space-y-5 text-[16.5px] leading-relaxed text-[var(--lw-ink-2)] md:pt-3">
               <p>A chatbot summary sounds sure of itself, and nobody can tell which sentence the lecture notes actually support. A citation is often decoration: a source is attached, but it doesn&apos;t say what the sentence claims.</p>
@@ -158,11 +148,11 @@ export default function Welcome() {
         </section>
 
         {/* -------------------------------------------- the proof (green) */}
-        <section id="proof" className="lw-cloth relative scroll-mt-24 text-white">
+        <section id="proof" data-drift="cloth" className="lw-cloth relative scroll-mt-24 text-white">
           <div aria-hidden className="h-24 bg-[var(--lw-paper)] [clip-path:polygon(0_0,100%_0,90%_100%,10%_100%)] md:h-32" />
           <div className="mx-auto max-w-[1296px] px-4 pt-14 pb-24 md:px-6 md:pt-20 md:pb-32">
             <Reveal className="max-w-[760px]">
-              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[60px]">A citation is a promise. We check it twice.</h2>
+              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[60px]"><Words text="A citation is a promise. We check it twice." /></h2>
               <p className="mt-5 max-w-[56ch] text-[16.5px] leading-relaxed text-white/75">
                 First, the quote must appear in the file, word for word, or the page isn&apos;t saved. Then the Claim Auditor reads the meaning: does this quote actually support this sentence?
               </p>
@@ -187,7 +177,7 @@ export default function Welcome() {
         <section id="how" className="scroll-mt-24 bg-[#121211] text-white">
           <div className="mx-auto max-w-[1296px] px-4 py-24 md:px-6 md:py-32">
             <Reveal>
-              <h2 className="lw-serif max-w-[16ch] text-[40px] leading-[1.05] md:text-[60px]">Four steps. One of them is typing a sentence.</h2>
+              <h2 className="lw-serif max-w-[16ch] text-[40px] leading-[1.05] md:text-[60px]"><Words text="Four steps. One of them is typing a sentence." /></h2>
             </Reveal>
             <div className="mt-14"><Steps /></div>
           </div>
@@ -197,7 +187,7 @@ export default function Welcome() {
         <section aria-label="The Academic pack" className="lw-rule">
           <div className="lw-frame mx-auto max-w-[1296px] px-4 py-20 md:px-6 md:py-28">
             <Reveal className="max-w-[720px]">
-              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[54px]">A study group of agents, on your files.</h2>
+              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[54px]"><Words text="A study group of agents, on your files." /></h2>
               <p className="mt-5 max-w-[56ch] text-[16.5px] leading-relaxed text-[var(--lw-ink-2)]">A Reader, a Writer, a Planner and a Reviewer by default. Add the Academic pack, build your own, or install one a classmate shared.</p>
             </Reveal>
             <div className="mt-12 grid gap-px border border-[var(--lw-line)] bg-[var(--lw-line)] lg:grid-cols-3 lg:grid-rows-2">
@@ -227,7 +217,7 @@ export default function Welcome() {
         <section id="share" className="lw-rule scroll-mt-24 bg-[var(--lw-paper-2)]">
           <div className="lw-frame mx-auto grid max-w-[1296px] items-center gap-12 px-4 py-20 md:px-12 md:py-28 lg:grid-cols-[1fr_1.1fr]">
             <Reveal>
-              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[54px]">Made to be passed along the class group.</h2>
+              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[54px]"><Words text="Made to be passed along the class group." /></h2>
               <p className="mt-5 max-w-[50ch] text-[16.5px] leading-relaxed text-[var(--lw-ink-2)]">
                 Press Share on any page. Your friend opens it without an account, sees every quote, and can make their own from their files. You see how many opened it and joined.
               </p>
@@ -243,7 +233,7 @@ export default function Welcome() {
             <Reveal className="relative">
               <Image src="/landing/shared.webp" alt="A shared LEARIS page opened without an account, with its sources and a sign-up invitation"
                 width={2880} height={1800} sizes="(min-width: 1024px) 640px, 100vw" className="h-auto w-full rounded-[6px] border border-[var(--lw-line)] shadow-[0_24px_60px_-24px_rgba(20,40,30,0.35)]" />
-              <Image src="/landing/og.webp" alt="The preview card a chat app shows for a shared page"
+              <Image data-drift="float" src="/landing/og.webp" alt="The preview card a chat app shows for a shared page"
                 width={1200} height={630} sizes="320px" className="absolute -bottom-8 -left-4 hidden w-[52%] rounded-[6px] border border-white/20 shadow-[0_24px_50px_-18px_rgba(10,20,15,0.55)] sm:block md:-left-10" />
             </Reveal>
           </div>
@@ -253,7 +243,7 @@ export default function Welcome() {
         <section id="privacy" className="lw-rule scroll-mt-24">
           <div className="lw-frame mx-auto max-w-[1296px] px-4 py-20 md:px-12 md:py-24">
             <Reveal>
-              <h2 className="lw-serif max-w-[20ch] text-[36px] leading-[1.05] md:text-[48px]">Your files are yours. So is your AI key.</h2>
+              <h2 className="lw-serif max-w-[20ch] text-[36px] leading-[1.05] md:text-[48px]"><Words text="Your files are yours. So is your AI key." /></h2>
             </Reveal>
             <div className="mt-12 grid gap-10 md:grid-cols-3">
               {[
@@ -275,7 +265,7 @@ export default function Welcome() {
         <section className="lw-rule lw-guilloche">
           <div className="lw-frame mx-auto max-w-[1296px] px-4 py-20 md:px-6 md:py-28">
             <Reveal className="mx-auto max-w-[820px] border border-[var(--lw-line)] bg-[var(--lw-paper)] px-6 py-14 text-center shadow-[0_30px_80px_-40px_rgba(20,40,30,0.4)] md:px-16 md:py-20">
-              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[58px]">Bring this semester&apos;s files.</h2>
+              <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[58px]"><Words text="Bring this semester's files." /></h2>
               <p className="mx-auto mt-4 max-w-[44ch] text-[16px] leading-relaxed text-[var(--lw-ink-2)]">Free. Works in Bahasa Indonesia and English, on your phone, with voice.</p>
               <Link href={START} className="lw-btn lw-serif mt-9 inline-block bg-[var(--lw-ink)] px-10 py-4 text-[18px] text-white hover:bg-black">Start free</Link>
             </Reveal>
@@ -302,7 +292,7 @@ export default function Welcome() {
             </div>
           ))}
         </div>
-        <p aria-hidden className="lw-serif mt-10 -mb-[0.22em] text-center text-[34vw] leading-[0.8] tracking-[-0.05em] text-white/[0.08] select-none">learis</p>
+        <p aria-hidden data-drift="rise" className="lw-serif mt-10 -mb-[0.22em] text-center text-[34vw] leading-[0.8] tracking-[-0.05em] text-white/[0.08] select-none">learis</p>
       </footer>
     </div>
   );
