@@ -11,7 +11,7 @@
 | | |
 |---|---|
 | Demo video | _add link (must open without a login)_ |
-| Live app | https://krr9mtgvtj2ul8vbkchwlravqqmklhmqtek9fgfr.hackonvibe.com (web) · agent service on AWS EC2 |
+| Live app | https://learis.utdi.me (AWS EC2) · team mirror: https://krr9mtgvtj2ul8vbkchwlravqqmklhmqtek9fgfr.hackonvibe.com |
 | Team | _names · countries_ |
 
 ---

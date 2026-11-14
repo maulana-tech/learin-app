@@ -4,15 +4,15 @@
 # (it runs once, as root). Progress: /var/log/cloud-init-output.log on the server.
 #
 # It installs Docker, nginx and certbot, adds swap, writes the nginx sites for
-#   learis.lumbungstack.dev       → the web app      (127.0.0.1:3000)
-#   api.learis.lumbungstack.dev   → the agent service (127.0.0.1:8787)
+#   learis.utdi.me       → the web app      (127.0.0.1:3000)
+#   api-learis.utdi.me   → the agent service (127.0.0.1:8787)
 # and creates /opt/learis/learis/agent/.env with a fresh LEARIS_SECRET.
-# HTTPS comes after DNS points here: sudo certbot --nginx -d learis.lumbungstack.dev -d api.learis.lumbungstack.dev
+# HTTPS comes after DNS points here: sudo certbot --nginx -d learis.utdi.me -d api-learis.utdi.me
 set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-WEB_HOST=learis.lumbungstack.dev
-API_HOST=api.learis.lumbungstack.dev
+WEB_HOST=learis.utdi.me
+API_HOST=api-learis.utdi.me
 APP_DIR=/opt/learis
 
 apt-get update -y
