@@ -256,7 +256,11 @@ def audit_claims(ctx: Ctx, page_id: str) -> Dict[str, Any]:
     from core import academic
     out = _call(academic.audit, ctx.user_id, page_id, ctx.cfg)
     # what the agent needs to fix: the weak claims, not the whole list
-    weak = [{"sentence": c["sentence"], "sources": c["sources"], "verdict": c["verdict"], "reason": c["reason"]}
+    # each weak claim with the quote it leans on and the file to look in, so a fix needs no searching
+    files = {s["n"]: s for s in space.page(ctx.user_id, page_id)["sources"]}
+    weak = [{"sentence": c["sentence"], "verdict": c["verdict"], "reason": c["reason"],
+             "cites": [{"n": n, "file_id": files[n]["file_id"], "file": files[n]["file_name"], "quote": files[n]["quote"]}
+                       for n in c["sources"] if n in files]}
             for c in out["claims"] if c["verdict"] != "supported"]
     return {"page_id": page_id, "counts": out["counts"], "method": out["method"], "weak_claims": weak[:20],
             "ok": out["ok"]}
