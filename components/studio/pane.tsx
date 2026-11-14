@@ -12,6 +12,7 @@ import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ModelPicker, panelConfig } from "@/components/model-picker";
+import { SpeakButton, VoiceButton } from "@/components/voice";
 import { AttachButton, AttachChips, SentFiles, dropProps, splitAttached, useAttachments, withAttached } from "@/components/attach";
 import { call, useSavedModels } from "@/lib/ai-config";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ export function Pane({ pane, agents, maximised, onChange, onClose, onMaximise }:
   const last = pane.turns[pane.turns.length - 1];
   const saved = useSavedModels();
   const att = useAttachments();
+  const voiceBase = useRef<string | null>(null);
   const [over, setOver] = useState(false);
 
   function patchTurn(runId: string, patch: Partial<Turn>) {
@@ -142,6 +144,7 @@ export function Pane({ pane, agents, maximised, onChange, onClose, onMaximise }:
               <div className="bg-inner-grad rounded-lg border p-3">
                 <div className="text-[13.5px] leading-relaxed"><Markdown>{t.answer || "Done."}</Markdown></div>
                 <ArtifactLinks items={t.artifacts ?? []} />
+                <SpeakButton text={t.answer || ""} className="mt-2 mr-3" />
                 {t.runId && (
                   <button type="button" onClick={() => toggleSteps(t.runId!)} className="text-muted-foreground hover:text-fg mt-2 text-[11.5px]">
                     {open[t.runId] ? "Hide steps" : "Show what it did"}
@@ -170,6 +173,11 @@ export function Pane({ pane, agents, maximised, onChange, onClose, onMaximise }:
           <div className="mt-1.5 flex items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-1">
               <AttachButton small onFiles={(f) => void att.add(f)} disabled={live(last)} />
+              <VoiceButton small disabled={live(last)} onText={(spoken, done) => {
+            if (voiceBase.current === null) voiceBase.current = text;
+            setText([voiceBase.current, spoken].filter(Boolean).join(" "));
+            if (done) voiceBase.current = null;
+          }} />
               <ModelPicker compact value={pane.model} onSelect={(model) => onChange((p) => ({ ...p, model }))} className="min-w-0" />
             </span>
             <Button type="submit" size="icon" className="size-7 shrink-0" aria-label="Send"
