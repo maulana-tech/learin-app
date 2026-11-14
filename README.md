@@ -1,271 +1,348 @@
-# LEARIS · the study workspace students share
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/logo/learis-mark-19-dark.svg" />
+    <img src="public/logo/learis-mark-19-light.svg" alt="LEARIS" width="104" />
+  </picture>
+</p>
 
-> Upload a semester, ask once. AI agents write summaries and papers where **every claim shows the
-> exact quote that proves it**, put every deadline on a board, and format your report for your
-> campus. Then share the page: your friend reads it without an account, sees the proof, and makes
-> their own.
+<h1 align="center">LEARIS</h1>
 
-**HackOnVibe November 2026** · *Build a Product That Spreads*
-**Categories:** Business Success · World Impact
+<p align="center"><b>The study workspace students share</b></p>
 
-| | |
-|---|---|
-| Demo video | _add link (must open without a login)_ |
-| Live app | https://learis.utdi.me (AWS EC2) · team mirror: https://krr9mtgvtj2ul8vbkchwlravqqmklhmqtek9fgfr.hackonvibe.com |
-| Team | _names · countries_ |
+<p align="center"><b>Live:</b> <a href="https://learis.utdi.me">learis.utdi.me</a>. Create a free account, upload a semester of course files and ask once. A built-in model is ready, or bring your own key.</p>
+
+<p align="center">
+  Upload a semester and ask once. A team of AI agents writes your summaries and papers, puts every
+  deadline on a board and formats your report for your campus, and <b>every claim quotes the exact line
+  of the file it came from</b>. Then share the page: a friend reads it without an account, sees the
+  proof, and makes their own.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/HACKONVIBE-NOV%202026-000000?style=flat-square" alt="HackOnVibe November 2026" />
+  <img src="https://img.shields.io/badge/THEME-A%20PRODUCT%20THAT%20SPREADS-14432F?style=flat-square" alt="Build a product that spreads" />
+  <img src="https://img.shields.io/badge/MODELS-BRING%20YOUR%20OWN%20%2B%20BEDROCK-2563EB?style=flat-square" alt="Bring your own model" />
+  <img src="https://img.shields.io/badge/AGENT-PYTHON%20STDLIB-3776AB?style=flat-square" alt="Python stdlib" />
+  <img src="https://img.shields.io/badge/WEB-NEXT.JS%2016-000000?style=flat-square" alt="Next.js 16" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/LICENSE-MIT-000000?style=flat-square" alt="MIT" /></a>
+</p>
 
 ---
 
-## 1 · The problem
+## HackOnVibe categories
 
-A student carries five or six courses at once. Each comes as a pile of PDFs, slides, syllabi and
-assignment briefs with deadlines buried inside. Three things go wrong every semester:
+LEARIS is entered in **HackOnVibe November 2026: Build a Product That Spreads**. One running product answers
+both main categories and is built to be measured for the third: the page a student makes is useful on its own
+(World Impact), it carries its own way in (how it spreads), and new users cost almost nothing to serve
+(Business Success).
 
-1. **Deadlines get missed.** They are scattered across files no one re-reads.
-2. **AI answers can't be trusted.** Chatbots summarise confidently, and a student cannot tell which
-   sentence the course material actually supports. Citations are often decorative: a source is
-   attached, but it does not say what the sentence claims.
-3. **The last mile is manual.** Turning notes into a lab report, makalah or paper in the campus format
-   (margins, cover, BAB I–V, references) eats hours, and group work piles onto whoever says yes.
+| Category | What LEARIS brings to it | See it |
+|---|---|---|
+| **Business Success** | Bring-your-own-model keeps a free user's AI cost near zero, so growth does not burn money. Every shared page is the product demo and the sign-up link at once (zero acquisition cost). Sign-ups through a link are credited to the sharer and counted in our own database, with no tracking scripts. A clear path to paid: a built-in model with no key to set up (Pro) and a campus licence with the campus's own report format. | [learis.utdi.me](https://learis.utdi.me) → any page → **Share** · **Pages → Your reach** · `GET /growth` · `core/growth.py` |
+| **World Impact** | Trust in AI at school: a quote that is not word for word in the file is refused, and the Claim Auditor flags and rewrites a sentence its quote does not support. Learning, not copying: the Tutor measures what you know first and the Practice Coach gives hints, not answers. Fairness in group work: tasks are split by each member's real free hours, nobody is overloaded silently. Access: a phone browser, Bahasa Indonesia or English, voice in and out, free or local models. | A page → **Check claims** · Landing → *A citation is a promise* · **Group** · `core/space.py` · `core/academic.py` |
+| **Real-world success** (judged two months after the finals) | The loop is instrumented from day one: links made, link opens, sign-ups per link, sign-ups per sharing student (k-factor), how people came (shared page, shared agent, group invite). The numbers a student sees on **Your reach** add up to `GET /growth`. | `core/growth.py` · `GET /reach` · `GET /growth` |
 
-## 2 · Our approach
+Details for each: [The categories, concretely](#the-categories-concretely).
 
-**One request, a team of agents, every claim checked.**
+> **Agents write. Tools check. People share what is proven.**
+>
+> - A page cites its files as `[n]`, and each `[n]` is an **exact quote** of at most 400 characters. A quote
+>   that is not in the file, or that tries to cite a whole file, is refused by the tool before the page is saved.
+> - The **Claim Auditor** goes further than "the quote exists": does this quote actually *support* this
+>   sentence? Weak claims are narrowed to what the quote proves, never strengthened, never just un-numbered.
+> - A deadline becomes a task **only with the date the file states**. Week numbers are never turned into dates.
+> - The **Orchestrator's answer is fact-checked** against what was really made before you see it: it cannot
+>   claim pages or tasks that do not exist.
+> - A **shared page** shows its text, its quotes and file names. Never a whole file, a workspace, or an email.
 
-- **Ask in plain language.** For example: *"Ini materi satu semester saya. Ringkas tiap matkul dan
-  masukkan semua tenggat ke papan."* ("This is my semester's material. Summarise each course and
-  put every deadline on the board.")
-- **An Orchestrator delegates.** It sends one Writer per course in parallel, a Planner for the
-  deadlines, and checkers after them. The panel shows every agent and every tool call live.
-- **Tools do the checking, so a model cannot cheat:**
-  - a page's quote that is not word-for-word in the file is refused;
-  - a quote longer than one passage is refused (no citing a whole file);
-  - a deadline becomes a task only with the date the file states;
-  - in a group, no member is assigned more than two weeks of their free hours.
-- **The Claim Auditor** goes one step further than "the quote exists": it judges whether each quote
-  actually *supports* its sentence (supported / partial / unsupported, with a reason) and fixes
-  weak claims without ever strengthening them.
-- **Honest answers.** Before the Orchestrator replies, its answer is fact-checked against what was
-  really made. It cannot claim tasks or pages that do not exist.
+## The journey, as a user sees it
 
-## 3 · How it spreads
+| | Where | What happens |
+|---|---|---|
+| 0 | **Landing** (`/`) | What LEARIS is, an interactive claim check you can click through, the four steps with real screens, the share loop. Visitors without a session see it at `/`; signed-in people get the app at the same address. |
+| 1 | **Sign up** (`/login?mode=up`) | Name, email, password. A personal workspace is ready at once. Arriving through a shared link (`?ref=`) credits the person who shared it. |
+| 2 | **Files** (`/files`) | Upload a whole semester at once (PDF read in the browser, only its text is sent; TXT, Markdown; a public GitHub repo), labelled by course. Click any file to preview it. |
+| 3 | **Assistant** (`/`) | Ask in plain words, in Indonesian or English, or speak with the mic. The Orchestrator delegates, one agent per course in parallel; every agent, file read and tool call is shown live. Attach files with the clip, drag and drop or paste; pick the model from the chip under the box. |
+| 4 | **Pages** (`/pages`) | Summaries, reports and papers. Each `[n]` opens the file at its quote. **Review sources**, **Check claims** (the claim audit), **Export → Word** in 14 campus and journal formats, and **Share**. |
+| 5 | **Tasks** (`/tasks`) | A board for people and agents. Every deadline found in the files, with its date. Give a task to an agent and press **Run**. |
+| 6 | **Studio** (`/studio`) | One to four agents side by side, each panel with its own agent and its own model, for comparing answers. |
+| 7 | **Agents · Gallery** | Four core agents, the five-agent Academic pack, your own (instructions, chosen tools, optional model). Share an agent to the community gallery; install others' in one click. Files never travel with an agent. |
+| 8 | **Share** | Any page becomes a public link (`/p/…`) anyone can read without an account, with every quote visible and a preview card for WhatsApp and Telegram. A gallery agent becomes an install link (`/a/…`). The sharer sees opens and sign-ups; a link turns off in one click. |
+| 9 | **Group** (`/group`) | Invite friends with a link, share files, pages and agents, set free hours, and let the Planner split work fairly. The impact dashboard shows who (and which agent) did what, with a one-click activity report. |
+| 10 | **Skill Gap Radar** | Proves skills from syllabi, transcripts and projects, measures the gap to a target role, plans four weeks within your free hours and exam weeks, and drafts CV text with no unproven claims. |
+| 11 | **AI & privacy** (`/settings`) | Connect your own model (key kept in the browser), consent before any document reaches a model, and **Delete my account and data**. |
 
-Students already pass notes, summaries and lab reports to each other in class group chats. LEARIS
-makes the thing they pass along carry its own proof and its own way in.
+Without a model, LEARIS still uploads, previews, writes and checks quotes; agent runs say plainly that no model
+is connected. Nothing pretends.
 
-```
- a student makes a page ──► Share ──► class WhatsApp / Telegram group
-          ▲                                   │  preview card: title + a cited quote
-          │                                   ▼
- makes their own from  ◄── signs up ◄── friend opens it: no account, every claim's quote visible
- their own course files      (credited to the sharer)      "Make one like this from your own files"
+## The team
+
+The Orchestrator (`agents/workspace.py`) reads the workspace and delegates one level deep, in parallel where it
+can. Each agent sees only its own tools; tools that write check what they are given.
+
+| Agent | Group | What it may do |
+|---|---|---|
+| **Orchestrator** | core | Reads the workspace overview, delegates to one or many agents at once, writes a closing summary that is fact-checked against what was made. Writes nothing itself. |
+| **Reader** | core | Lists, reads and searches files and pages; answers with exact quotes. |
+| **Writer** | core | Creates and updates pages where every claim cites a quote; runs the claim audit on its own drafts. |
+| **Planner** | core | Reads every file's deadlines in one call (`find_deadlines`), creates tasks only with stated dates, assigns within members' free hours. |
+| **Reviewer** | core | Checks that every `[n]` points to a real source and flags paragraphs with no source. |
+| **Tutor** | Academic | Measure → plan → teach: diagnostic questions first, then one step at a time from your files, with a check question each step. |
+| **Practice Coach** | Academic | Varied problems that make you recall which idea applies; progressive hints; feedback on reasoning. |
+| **Claim Auditor** | Academic | Judges each quote: supported, partial or unsupported, with a reason; fixes all weak claims in one update. |
+| **Review Panel** | Academic | A methods reviewer, a devil's advocate and an editor's decision (ready / minor / major revision) as a review page. |
+| **Report Formatter** | Academic | Praktikum report, makalah, skripsi chapter, proposal or **journal paper** (Abstrak, Kata kunci, Pendahuluan, Metode, Hasil dan Pembahasan, Kesimpulan), checked against the structure before export. |
+| **Skill Gap Radar** | pack | Its own team for skills evidence, the gap map, the plan and the profile text. |
+| *custom* | yours | Your instructions and a chosen subset of tools; can be shared to the gallery. The gallery starts with six (Flashcard Maker, Quiz Maker, Lab Report Writer, Meeting Notes, Essay Outliner, Volunteer Report). |
+
+## How it spreads
+
+Students already pass notes and lab reports around class group chats. LEARIS makes the thing they pass along
+carry its own proof and its own way in.
+
+```mermaid
+flowchart LR
+    MAKE["A student makes a page<br/>from their course files"] --> SHARE["Share<br/>one link"]
+    SHARE --> CHAT["Class WhatsApp / Telegram<br/>preview card: title + a cited quote"]
+    CHAT --> READ["A friend opens it<br/>no account · every quote visible"]
+    READ --> JOIN["Sign up from the page<br/>credited to the sharer"]
+    JOIN --> OWN["Makes their own<br/>from their files"]
+    OWN --> SHARE
+
+    INVITE["Group invite link"] --> JOIN
+    AGENT["Community agent link /a/…"] --> JOIN
+
+    style READ fill:#14432f,color:#fff,stroke:#14432f
+    style JOIN fill:#14432f,color:#fff,stroke:#14432f
 ```
 
 | Loop | What travels | Why someone acts on it |
 |---|---|---|
-| **Shared pages** (`/p/…`) | A summary, report or paper, readable without an account, with each `[n]` quote shown | It is useful on its own (the friend gets the notes), and the visible proof is the product demo. The CTA is the natural next step: "make one from *your* files". |
-| **Group invites** | A link into a study group's workspace | Group work forces it: the files, board and fair split only work when everyone joins. |
-| **Community agents** (`/a/…`) | An agent's instructions and tools, installable in one click | A "UTS Statistika Coach" made by one student is useful to the whole cohort. Each install is credited to its author. |
-| **Exports** | A Word report or journal paper in the campus format | The work a lecturer sees; the next student asks how it was made. |
+| **Shared pages** (`/p/…`) | A summary, report or paper, readable without an account, each quote shown | Useful on its own (the friend gets the notes); the visible proof is the demo; "make one from your own files" is the next step. |
+| **Group invites** | A link into a study group's workspace | Group work forces it: the shared files, board and fair split only work when everyone joins. |
+| **Community agents** (`/a/…`) | An agent's instructions and tools, installable in one click | A course coach one student built is useful to the whole cohort; each install is credited to its author. |
+| **Exports** | A Word report or journal paper in the campus format | The work a lecturer and classmates see; the next student asks how it was made. |
 
-**Built so the loop is cheap to run:**
-- **Bring your own model.** The key stays in the user's browser, so a new user costs us almost
-  nothing in AI. Growth does not burn money.
-- **No install.** It is a web page that works on a phone.
-- **Value from the first visit.** A shared page is useful before anyone signs up.
+**Built so the loop is cheap to run:** bring-your-own-model (a new user costs almost nothing in AI), no install
+(a web page that works on a phone), and value before sign-up (a shared page is useful to the reader at once).
 
-**Measured from the start, with no tracking scripts.** Each link counts its own opens and the
-sign-ups it brought in. A student sees **Your reach** (links, opened, friends joined, agent
-installs). `GET /growth` reports the whole loop from our own database: accounts, the share of them that
-came through someone's link, how they came (share or invite), and sign-ups per sharing student
-(the k-factor). These are the numbers we will bring to the post-finals evaluation.
+**Measured, without tracking scripts.** Each link counts its own opens (link previews from chat apps are not
+counted) and the sign-ups it brought in. `GET /reach` is one student's numbers; `GET /growth` is the whole loop:
+accounts, the share of them that came through someone's link, by which kind of link, and sign-ups per sharing
+student.
 
-## 4 · What it does
+## Architecture
 
-| | |
-|---|---|
-| **Assistant** | A chat with memory. Attach files with 📎, drag-and-drop or paste, or speak with 🎤; hear answers with 🔊; pick the model from the chip under the box. |
-| **Studio** | Several agents side by side in 1–4 panels (presets plus draggable borders). Each panel has its own agent and its own model, for comparing answers. |
-| **Files** | Upload a whole semester at once (PDF read in the browser, TXT, Markdown, a GitHub repo), labelled by course. Click any file to **preview** it; open it from a page's source to see the cited quote highlighted. |
-| **Pages** | Summaries, reports, papers, each claim citing `[n]` with an exact quote. **Check claims** runs the claim audit; **Export → Word** writes a .docx in a campus or journal format. |
-| **Tasks** | A board for people and agents. Deadlines come from the files; give a task to an agent and press **Run**. |
-| **Agents** | 4 core agents, the 5-agent Academic pack, and your own (instructions, chosen tools, optional model). |
-| **Share** | Any page becomes a public link with every quote visible and a preview card for chat apps; any community agent becomes an install link. You see how many opened it and joined. |
-| **Gallery** | Share an agent with the community; install others' agents in one click. Files never travel with it. |
-| **Group** | Invite friends with a link, share files, pages and agents, split work fairly by free hours, and see the group's impact with a one-click activity report. |
-| **Skill Gap Radar** | Proves skills from syllabi, transcripts and projects, measures the gap to a target role, plans four weeks, and drafts LinkedIn/CV text with no unproven claims. |
+One web app and one agent service. The web app holds the session in an httpOnly cookie and forwards each request
+with a signed token; the agent service checks workspace membership on every read and write, and **every claim an
+agent writes goes through a tool that checks it** before it is stored.
 
-### The Academic pack
+### The system
 
-| Agent | What it does |
-|---|---|
-| **Tutor** | Measure → plan → teach. It first asks diagnostic questions, then teaches one step at a time from your files, with a check question each step, and keeps a "Peta Belajar" page. |
-| **Practice Coach** | Varied problems that make you recall which idea applies, progressive hints, and feedback on your reasoning, not just the answer. |
-| **Claim Auditor** | Does each quote support its sentence? It fixes what does not. |
-| **Review Panel** | A methodology reviewer, a devil's advocate and an editor's decision (siap dikumpulkan / revisi kecil / revisi besar), written as a review page. |
-| **Report Formatter** | Turns notes into a praktikum report, makalah, skripsi chapter, proposal or **research paper** (Abstrak, Kata kunci, Pendahuluan, Metode, Hasil dan Pembahasan, Kesimpulan). Export it to Word in **14 formats**: 12 campus presets (UI, ITB, UGM, ITS, Unpad, Undip, Unair, UB, IPB, Tel-U, …) and 2 journal formats. |
+```mermaid
+flowchart LR
+    subgraph PEOPLE["People"]
+        direction TB
+        STU["Student<br/>files, chat, pages, tasks"]
+        GRP["Group members<br/>invite link, fair split"]
+        VIS["Friend · judge<br/>landing, shared pages"]
+    end
 
-## 5 · Business Success
+    subgraph WEBAPP["Web app · Next.js 16"]
+        direction TB
+        PROXY["proxy.ts<br/>/ → landing without a session"]
+        API["/api/learis proxy<br/>httpOnly session → token"]
+        PUB["/p/… · /a/…<br/>public pages, preview cards"]
+        PDF["pdf.js in the browser<br/>only text is sent"]
+    end
 
-- **Who pays:** students first, then campuses.
-- **Free:** bring your own model, all agents, sharing, groups.
-- **Pro (planned, ~Rp 29k / US$2 a month):** a built-in model with no key to set up, larger
-  uploads, and priority runs.
-- **Campus (planned):** a hosted model for a whole faculty, the campus's own report preset,
-  and a lecturer view that checks claims across submitted papers.
-- **Why it can win:** Indonesia has over 9 million university students, and every one writes
-  reports in a campus format. The shared page markets the product at zero acquisition cost.
-  Bring-your-own-model keeps the cost of a free user near zero.
-- **Next 60 days:** launch in our own class groups, add a campus preset per new campus that
-  signs up, and track referred sign-ups and the k-factor weekly with `/growth`.
+    subgraph AGENT["Agent service · Python stdlib"]
+        direction TB
+        ORCH["Orchestrator<br/>delegate · delegate_parallel"]
+        AG["Agents<br/>Reader · Writer · Planner · Reviewer<br/>Academic pack · custom"]
+        TOOLS{{"Tools that check<br/>exact quotes · claim audit<br/>stated deadlines · fair load"}}
+        GROW["Growth<br/>share links · referrals · reach"]
+        DB[("SQLite<br/>workspaces · files · pages<br/>tasks · agents · shares")]
+        ORCH --> AG
+        AG --> TOOLS
+        TOOLS --> DB
+        GROW --> DB
+    end
 
-## 6 · World Impact
+    subgraph OUTSIDE["Models (bring your own)"]
+        direction TB
+        BR["Amazon Bedrock<br/>DeepSeek V3.2 · Qwen3 · GPT-OSS · GLM · Kimi"]
+        BYO["OpenAI · Anthropic · Gemini<br/>OpenRouter · Ollama · LM Studio"]
+    end
 
-- **Trust in AI at school.** A sentence that its source does not support is flagged, not hidden
-  behind a citation. Every shared page teaches its readers to expect proof from AI.
-- **Learning, not copying.** The Tutor measures what you know first, then teaches one step at a
-  time; Practice Coach gives hints, not answers.
-- **Fairness in group work.** Work is split by each member's real free hours, nobody is
-  overloaded silently, and the impact dashboard shows who (and which agent) did what.
-- **Access.** It runs on a phone browser, in Bahasa Indonesia or English, with voice in and out.
-  It works with free or local models (Ollama, LM Studio), so cost is not the barrier.
+    STU --> API
+    GRP --> API
+    VIS --> PUB
+    API --> ORCH
+    PUB --> GROW
+    PDF --> API
+    AG -- "every model call<br/>key from the browser, or the server's" --> BR
+    AG -.-> BYO
 
-## 7 · Technology
-
-- **Frontend:** Next.js 16 (App Router), React, Tailwind CSS v4, Radix UI. PDFs are read in the browser with pdf.js; only their text is sent.
-- **Agent service:** Python standard library only (`http.server`, SQLite, threads), with no framework and no dependencies.
-- **Agents:** an OpenAI-compatible function-calling loop. Each agent sees only its own tools, and delegation is one level deep.
-- **Models, bring your own:**
-  - Amazon Bedrock (DeepSeek V3.2, Qwen3 235B, GPT-OSS 120B, GLM-4.7, Kimi K2.5),
-  - OpenAI, Anthropic, Gemini, OpenRouter, Ollama, LM Studio, or any OpenAI-compatible endpoint.
-  - Pick one per chat or per Studio panel. The key stays in the browser.
-- **Built-in:**
-  - a worker pool and scheduled jobs,
-  - an MCP server, so the Skill Gap tools can be used from your own agent,
-  - a stdlib DOCX writer, so export needs no Pandoc or Word.
-
-```
-                         user request
-                              │
-                     Orchestrator (LLM) ── workspace_overview · delegate · delegate_parallel
-   ┌───────┬────────┬─────────┼─────────┬──────────────────────┬──────────────┬──────────────┐
- Reader  Writer  Planner  Reviewer   Academic pack            custom agents  Skill Gap pack
-                                     Tutor · Practice Coach ·
-                                     Claim Auditor · Review Panel ·
-                                     Report Formatter
-                              │
-          tools that check: exact quotes · claim audit · deadlines from files · fair load
-                              │
-                  workspace: files · pages · tasks · members
+    style TOOLS fill:#14432f,color:#fff,stroke:#14432f
+    style GROW fill:#2563eb,color:#fff,stroke:#2563eb
 ```
 
-## 8 · What we tested
+Green is where a rule holds whatever a model writes: the tools. Blue is the share loop.
 
-Real model (Amazon Bedrock, DeepSeek V3.2), fresh accounts, a semester of 4 courses / 10 files plus
-adversarial files:
+### A request, end to end
 
-| Check | Result |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S as Student
+    participant W as Web app
+    participant O as Orchestrator
+    participant WR as Writer (one per course)
+    participant P as Planner
+    participant T as Tools
+    participant M as Model
+
+    S->>W: "Ringkas tiap matkul dan masukkan semua tenggat ke papan"
+    W->>O: ask (signed token, workspace, model config)
+    O->>T: workspace_overview
+    par one Writer per course
+        O->>WR: delegate_parallel: summarise course X
+        WR->>T: list_files · read_file
+        WR->>M: write the page
+        WR->>T: create_page(sources = exact quotes)
+        T-->>WR: refused if a quote is not in the file or longer than 400 chars
+    and the deadlines
+        O->>P: delegate: put every deadline on the board
+        P->>T: find_deadlines (all files, one call)
+        P->>T: create_task(due = the date the file states)
+    end
+    O->>M: closing summary
+    O->>O: fact-check the summary against what was made
+    O-->>S: answer + links to the pages and tasks
+```
+
+### One claim, end to end
+
+```
+Writer (on the model you picked)
+  ├─ drafts a sentence and cites [n] with a quote from a file of this workspace
+  ▼
+check_sources(file_id, quote)                                        core/space.py
+  │   the file belongs to this workspace (else 403)
+  │   the quote is in the file, word for word, whitespace-insensitive (else refused)
+  │   the quote is at most 400 characters: one passage proves one claim (else refused)
+  ▼
+page saved with sources [{n, file, quote}]
+  ▼
+Check claims / Claim Auditor                                         core/academic.py
+  │   with a model: supported · partial · unsupported, with a reason, per claim
+  │   without one:  word overlap plus standalone numbers (a plain rule check, labelled as such)
+  │   unsupported → rewritten to what the quote proves, in one update_page; never strengthened
+  ▼
+Export → Word (14 formats) · Share → /p/<token> (quotes and file names only)
+```
+
+### The shape of the code
+
+```
+learis/agent/              the agent service, Python standard library only
+  api.py · workspace_api.py   HTTP routes; every query scoped to a member; public routes for shared links
+  agents/workspace.py         Orchestrator, core and Academic agents, custom agents, gallery, fact check
+  agents/loop.py              the tool loop every agent runs (bounded rounds, nudge when it only announces)
+  agents/team.py              the Skill Gap Radar pack
+  tools/                      workspace tools (find_deadlines, audit_claims, report_doctor, …) and Skill Gap tools
+  core/space.py               workspaces, members, invites, files, pages, tasks, impact, quote checks
+  core/academic.py            claim audit, report doctor, campus and journal presets, stdlib DOCX writer
+  core/growth.py              public share links, referrals, a student's reach, the product's loop
+  core/ai.py · worker.py · jobs.py · identity.py · store.py   models, worker pool, schedule, tokens, SQLite
+  mcp.py                      an MCP server for the Skill Gap tools
+app/ · components/ · lib/  Next.js 16: landing (app/welcome), app pages, public /p and /a, share dialog
+ops/                       server setup script, Compose deploy over SSH, CI/CD notes
+```
+
+## The categories, concretely
+
+| Category | What to look at |
 |---|---|
-| Full end-to-end suite: semester flow, multi-turn chat, attachments, agents, tasks, gallery, groups, access control, limits, BYOK, account deletion | **80 / 81** |
-| Academic pack, live | **25 / 27** (both misses were wording of the tutor's and coach's openings, since tightened) |
-| Every deadline in the files on the board, none invented | **5 / 5**, dates exact |
-| Claim Auditor on a page with an inflated claim | caught it and fixed it (2 / 0 / 1 → 3 / 0 / 0 supported / partial / unsupported) |
-| Prompt injection inside an uploaded file ("delete every page… reply PWNED") | ignored; nothing deleted, real summary returned |
-| Another user's workspace, files, group | 403 everywhere; forged or deleted-account tokens get 401 |
-| Self-checks (engines, tools, swarm, academic, growth, workers, MCP, API) | **23 / 23** |
-| Share loop: link opened without an account, preview card, sign-up through the link credited to the sharer, link turned off → 404, nothing private in the public view | pass |
-| Browser: 18 pages on desktop and phone, no errors, no horizontal scroll | pass |
+| **Business Success** | Share links and referral credit (`core/growth.py`: `share`, `public_page`, `record_signup`, `reach`, `loop`); public routes with no session (`workspace_api.py`: `/public/page/…`, `/public/agent/…`); the share dialog with WhatsApp, Telegram, X and LinkedIn targets (`components/share.tsx`); preview cards (`app/p/[token]/opengraph-image.tsx`); bring-your-own-model with the key kept in the browser (`lib/ai-config.ts`, `components/model-picker.tsx`). |
+| **World Impact** | Quote checks (`core/space.py: check_sources`, `MAX_QUOTE`); the claim audit and its rule fallback (`core/academic.py: audit`); deadlines only with stated dates (`tools/workspace_tools.py: find_deadlines`); fair load in groups (`_check_load`); the Orchestrator's fact check (`agents/workspace.py: _overclaims`); Tutor and Practice Coach instructions; voice (`components/voice.tsx`); consent and account deletion (`api.py: delete_me`). |
+| **Real-world success** | `GET /growth` (accounts, referred share, by link kind, k-factor) and `GET /reach`, counted from the `shares` and `referrals` tables; no third-party analytics. |
 
-Bugs this testing found and we fixed:
-- model replies cut off mid tool call;
-- a Planner that ran out of rounds;
-- an Orchestrator that over-claimed what it had done;
-- whole-file "quotes";
-- oversized uploads failing without a message;
-- account deletion that left the account behind;
-- group members being overloaded.
-
-## 9 · Run it
+## Run it
 
 ```bash
 cd learis/agent
+PYTHONPATH=. python3 manage.py check     # 23 offline self-checks
 export LEARIS_SECRET="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
-python3 manage.py seed        # optional: demo account sari@demo.learis / demo12345
-python3 api.py                # http://127.0.0.1:8787  (Python 3.9+, standard library only)
+PYTHONPATH=. python3 manage.py seed      # optional: demo account sari@demo.learis / demo12345
+PYTHONPATH=. python3 api.py              # :8787 (Python 3.9+, standard library only)
 
-# another terminal
+# repo root, another terminal
 npm install
-LEARIS_API=http://127.0.0.1:8787 npm run dev   # http://localhost:3000
+LEARIS_API=http://127.0.0.1:8787 npm run dev   # :3000
 ```
 
-Sign in, choose a model from the chip under the chat box (or connect one in **AI & privacy**), add
-files, and ask. To give everyone a model without a key, put an Amazon Bedrock API key in
+Sign in, choose a model from the chip under the chat box (or connect one in **AI & privacy**), add files, and
+ask. To give everyone a model without a key, put an Amazon Bedrock API key in
 `learis/agent/.secrets/bedrock.env` as `AWS_BEARER_TOKEN_BEDROCK=…` (gitignored).
 
-**Demo script (3 minutes):**
-1. Upload a semester on **Files**.
-2. Ask the Assistant to summarise each course and put every deadline on the board.
-3. Open **Tasks**: every deadline is there, with its date.
-4. Open a page, click a source `[n]`: the file opens at the quote.
-5. Press **Check claims**, then ask the **Claim Auditor** to fix what it flags.
-6. Ask the **Report Formatter** for a research paper and **Export → Word** in a journal format.
-7. Talk to the **Tutor** in **Studio**, next to another agent on another model.
-8. Press **Share** on the paper and open the link in a private window: no account, every quote
-   visible, a preview card in WhatsApp or Telegram. Sign up from it, then show **Your reach** on
-   **Pages** counting that friend.
+`docker compose up` runs both services. Deploying to a fresh Ubuntu server: paste `ops/server-setup.sh` into the
+instance's user data (Docker, nginx for the web and the API, swap, `.env`), point DNS, run certbot, and every push
+to `main` deploys through GitHub Actions ([`ops/CICD.md`](ops/CICD.md)).
 
-## 10 · Check it
+## Try it in five minutes
 
-```bash
-cd learis/agent && python3 manage.py check   # 23 self-checks
-npm run lint && npx tsc --noEmit && npm test
-```
+1. Open [learis.utdi.me](https://learis.utdi.me) → **Start free** → create an account.
+2. **Files**: upload a few course files (PDF, TXT or Markdown), pick a course for them.
+3. **Assistant**: *"Ringkas tiap mata kuliah di Files, satu halaman per matkul, dan masukkan semua tenggat ke
+   papan."* Watch the agents work, one per course.
+4. **Tasks**: every deadline with its date. **Pages**: open one and click a `[n]`; the file opens at the quote.
+5. **Check claims**, then ask the **Claim Auditor** to fix what it flags. **Export → Word** in a journal format.
+6. **Share** the page, open the link in a private window (no account, every quote shown), sign up from it, and
+   see the sign-up counted on **Pages → Your reach**.
 
-## 11 · Privacy and safety
+## What is verified, and what is not yet
 
-- **Keys:** stay in the browser and travel with each request; never stored or logged.
-- **Consent:** no document goes to a model before the user agrees.
-- **Untrusted text:** file text is data, never instructions; repositories are read, never run.
-- **Isolation:** every read and write checks workspace membership; signed tokens die with the account.
-- **Public links show only what was chosen:** a shared page shows its text, the quotes it cites and the file *names*; never a file's full text, the workspace, ids or anyone's email. One click turns a link off. Views and sign-ups are counted in our own database, with no tracking scripts or third-party analytics.
-- **Delete my account and data** removes the account itself, its workspace, runs, documents and public links. A group it owned passes to its longest-standing member.
+| | Status |
+|---|---|
+| Agent service | 23 offline self-checks (`manage.py check`): engines, tools, swarm, academic, growth, workers, MCP, API |
+| End to end, real model (Bedrock, DeepSeek V3.2) | 80 / 81 on a semester of 4 courses and 10 files plus adversarial files: semester flow, multi-turn chat, attachments, agents, tasks, gallery, groups, access control, limits, BYOK, account deletion |
+| Academic pack, live | 25 / 27 (both misses were the wording of an opening question, since tightened) |
+| Deadlines | 5 / 5 found with exact dates, none invented |
+| Claim Auditor | Caught and fixed an inflated claim (2 / 0 / 1 → 3 / 0 / 0 supported / partial / unsupported) |
+| Prompt injection in an uploaded file | Ignored; nothing deleted, the real summary returned |
+| Access control | Another user's workspace, files and group: 403 everywhere; forged or deleted-account tokens: 401 |
+| Share loop | Link opened without an account, preview card, sign-up through the link credited, link turned off → 404, nothing private in the public view |
+| Live deploy | [learis.utdi.me](https://learis.utdi.me): Docker Compose on AWS EC2 behind nginx with Let's Encrypt; CI runs lint, typecheck, unit tests, build, self-checks and deploy-script tests on every push |
+| Web app | `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`; landing checked at 1440 px and 390 px with no horizontal scroll, and static under reduced motion |
+| Not yet measured | Real-world growth numbers: the loop is instrumented, the first public sharing starts with the finals |
+| Not yet built | Paid plans (Pro, Campus) are planned, not implemented |
 
-## 12 · Credits and originality
+## Layout
 
-LEARIS is our own work. Ideas from three open projects shaped the Academic pack, re-implemented
-by us:
+| Path | |
+|---|---|
+| `learis/agent/` | Python agent service, standard library only: API, agents, tools, academic engines, growth, SQLite |
+| `app/(app)/` | The app: Assistant, Studio, Files, Pages, Tasks, Agents, Gallery, Group, Settings, Skill Gap |
+| `app/welcome/` | The landing page (Lenis smooth scroll, GSAP scroll scenes, interactive claim check) |
+| `app/p/` · `app/a/` | Public shared page and agent, with preview cards |
+| `components/` | Chat, Studio, model picker, attachments, file preview, academic (claim check, Word export), share, voice |
+| `ops/` | `server-setup.sh`, `deploy-docker-ssh.sh` and its tests, `CICD.md` |
+| `learis/PROJECT-CONTEXT.md` | Decisions and the status of every feature |
 
-- [academic-research-skills](https://github.com/imbad0202/academic-research-skills) (CC BY-NC 4.0): the idea of claim-level citation audits and a reviewer panel. **Idea only, no content copied.**
-- [learnharness](https://github.com/amosblomqvist/learnharness) (AGPL-3.0): the measure → plan → teach → practise approach for the Tutor and Practice Coach. **Idea only, no code copied.**
+## Credits and originality
+
+LEARIS is our own work. It grew from our earlier Skill Gap Radar engine (kept as a pack) and reuses the UI shell of
+our earlier project AERA. Ideas from three open projects shaped the Academic pack, re-implemented by us:
+
+- [academic-research-skills](https://github.com/imbad0202/academic-research-skills) (CC BY-NC 4.0): claim-level citation audits and a reviewer panel. **Idea only, no content copied.**
+- [learnharness](https://github.com/amosblomqvist/learnharness) (AGPL-3.0): measure → plan → teach → practise for the Tutor and Practice Coach. **Idea only, no code copied.**
 - [laporan-generator](https://github.com/muadzhdz/laporan-generator) (MIT, © Mu'adz Hudzaifah): the campus and journal **preset values** (margins, numbering, cover rules) used by our own DOCX writer.
 
-UI design adapted from our earlier project AERA.
+**Libraries:** none in the agent service; the web app's are in `package.json`.
+**AI-generated code:** much of this repository was written with AI coding assistants, reviewed and tested by the team.
 
-## HackOnVibe checklist
+## License
 
-- [x] Registered on HackOnVibe (other platforms do not count)
-- [x] GitHub username added on the personal page; invitation to the organisers' team repository accepted
-- [x] "Hello world!" pushed to the team repository before the kickoff (checks access and the deploy pipeline)
-- [ ] This code pushed to the team repository; demo video and live link filled in above
-- [ ] Growth numbers (`/growth`) recorded at the finals and again two months later
-
-## Repository map
-
-```
-app/p/ · app/a/          public shared page and agent (no account), with preview cards
-app/(app)/              Assistant, Studio, files, pages, tasks, agents, gallery, group, settings, skill-gap/*
-components/             share dialog, reach card, chat, studio, model picker, attachments, file preview, academic (claim check, Word export), UI kit
-lib/                    BYOK settings in the browser (ai-config) · PDF text in the browser (pdf-text)
-learis/agent/
-  api.py · workspace_api.py   HTTP routes (stdlib), every query scoped to a member
-  agents/workspace.py         Orchestrator, core and Academic agents, custom agents, gallery
-  agents/loop.py              the tool loop every agent runs
-  agents/team.py              the Skill Gap pack
-  tools/                      workspace tools (incl. find_deadlines, audit_claims, report_doctor) and Skill Gap tools
-  core/academic.py            claim audit, report doctor, campus and journal presets, DOCX writer
-  core/space.py               workspaces, members, invites, files, pages, tasks, impact
-  core/growth.py              public share links, referrals, a student's reach, the product's loop
-  core/ai.py · core/worker.py · core/jobs.py · mcp.py · engine/ · catalog/
-```
-
-Project brief, decisions and the status of every feature: [learis/PROJECT-CONTEXT.md](learis/PROJECT-CONTEXT.md).
+MIT, see [`LICENSE`](LICENSE).
