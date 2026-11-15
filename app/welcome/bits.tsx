@@ -29,16 +29,16 @@ type Claim = {
   verdict: "supported" | "unsupported"; why: string; fixed?: string;
 };
 const CLAIMS: Claim[] = [
-  { n: 1, text: "Normalisasi menyusun tabel agar tidak terjadi redundansi dan anomali data",
-    file: "modul-normalisasi.md", quote: "Normalisasi adalah proses menyusun tabel agar tidak terjadi redundansi dan anomali data",
+  { n: 1, text: "Normalisation structures a database to reduce data redundancy and improve data integrity",
+    file: "reading-01-database-normalization.md", quote: "Database normalization is the process of structuring a relational database in accordance with a series of normal forms to reduce data redundancy and improve data integrity",
     verdict: "supported", why: "The quote says this, nearly word for word." },
-  { n: 2, text: "Sistem perpustakaan kampus membutuhkan minimal enam entitas utama",
-    file: "tugas-besar-basis-data.md", quote: "minimal 6 entitas: Anggota, Buku, Eksemplar, Peminjaman, Denda, Petugas",
+  { n: 2, text: "The campus library database needs at least six entities",
+    file: "brief-group-project-library-database.md", quote: "Your design must include at least six entities: Member, Book, Copy, Loan, Fine and Librarian",
     verdict: "supported", why: "Six entities, named in the assignment brief." },
-  { n: 3, text: "Tabel dalam 3NF selalu membuat query lebih cepat",
-    file: "modul-normalisasi.md", quote: "Tabel berada dalam 3NF jika sudah 2NF dan tidak ada ketergantungan transitif",
-    verdict: "unsupported", why: "The quote defines 3NF. It says nothing about speed.",
-    fixed: "Tabel dalam 3NF tidak memiliki ketergantungan transitif" },
+  { n: 3, text: "Tables in third normal form always make queries faster",
+    file: "reading-01-database-normalization.md", quote: "Most 3NF relations are free of insertion, updation, and deletion anomalies",
+    verdict: "unsupported", why: "The quote is about anomalies. It says nothing about speed.",
+    fixed: "Most tables in third normal form are free of insertion, update and deletion anomalies" },
 ];
 
 export function ClaimDemo() {
@@ -50,7 +50,7 @@ export function ClaimDemo() {
     <div className="grid gap-px overflow-hidden rounded-[6px] bg-white/15 md:grid-cols-[1.15fr_1fr]">
       <div className="bg-[#f3f3f1] p-6 text-[#161616] md:p-8">
         <p className="lw-mono text-[11px] tracking-[0.12em] text-[#77776f] uppercase">A page your agents wrote</p>
-        <h3 className="lw-serif mt-3 text-[26px] leading-tight">Normalisasi Basis Data</h3>
+        <h3 className="lw-serif mt-3 text-[26px] leading-tight">Database Normalisation</h3>
         <p className="mt-4 text-[15.5px] leading-[1.8] text-[#2b2b29]">
           {CLAIMS.map((x) => {
             const text = x.n === 3 && fixed ? x.fixed! : x.text;

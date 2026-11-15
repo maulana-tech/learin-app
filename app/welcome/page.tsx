@@ -49,7 +49,7 @@ const PACK = [
   { name: "Tutor", body: "Asks what you already know, then teaches one step at a time from your own files." },
   { name: "Practice Coach", body: "Problems that make you recall which idea applies. Hints, not answers." },
   { name: "Review Panel", body: "A methods reviewer, a devil's advocate and an editor's decision on your draft." },
-  { name: "Report Formatter", body: "Lab report, makalah or journal paper, exported to Word in your campus format." },
+  { name: "Report Formatter", body: "Lab report, essay or journal paper, exported to Word in your campus format." },
 ];
 
 export default function Welcome() {
@@ -108,7 +108,7 @@ export default function Welcome() {
             {[
               ["400", "characters, the longest a quote may be. A source proves one sentence, never a whole file."],
               ["0", "deadlines guessed. A task gets a date only when a file states it."],
-              ["14", "campus and journal formats for the Word export, from UI and ITB to a journal paper."],
+              ["14", "campus and journal formats for the Word export, from a lab report to a journal paper."],
             ].map(([n, t], k) => (
               <Reveal key={n} className={`py-10 md:px-8 md:py-14 ${k ? "md:border-l md:border-dashed md:border-[var(--lw-line)]" : "md:pl-0"}`}>
                 <p className="lw-serif text-[76px] leading-none tabular-nums md:text-[96px]"><CountUp value={Number(n)} /></p>
@@ -266,7 +266,7 @@ export default function Welcome() {
           <div className="lw-frame mx-auto max-w-[1296px] px-4 py-20 md:px-6 md:py-28">
             <Reveal className="mx-auto max-w-[820px] border border-[var(--lw-line)] bg-[var(--lw-paper)] px-6 py-14 text-center shadow-[0_30px_80px_-40px_rgba(20,40,30,0.4)] md:px-16 md:py-20">
               <h2 className="lw-serif text-[40px] leading-[1.05] md:text-[58px]"><Words text="Bring this semester's files." /></h2>
-              <p className="mx-auto mt-4 max-w-[44ch] text-[16px] leading-relaxed text-[var(--lw-ink-2)]">Free. Works in Bahasa Indonesia and English, on your phone, with voice.</p>
+              <p className="mx-auto mt-4 max-w-[44ch] text-[16px] leading-relaxed text-[var(--lw-ink-2)]">Free. Agents answer in your language, on your phone, with voice.</p>
               <Link href={START} className="lw-btn lw-serif mt-9 inline-block bg-[var(--lw-ink)] px-10 py-4 text-[18px] text-white hover:bg-black">Start free</Link>
             </Reveal>
           </div>

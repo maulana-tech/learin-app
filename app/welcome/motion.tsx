@@ -87,7 +87,7 @@ export function HeroStage() {
       <Sheet side="back" src="/landing/tasks.webp" alt="The Tasks board: every deadline from the files, with its date" />
       <Sheet side="back" src="/landing/chat.webp" alt="The Assistant: agents reading files, every tool call shown" />
       <Sheet side="front" src="/landing/page.webp" priority
-        alt="A LEARIS page: a research paper on database normalisation, each claim numbered, sources quoted on the right" />
+        alt="A LEARIS page: an Introductory Statistics course summary, each claim numbered, sources quoted on the right" />
     </div>
   );
 }
