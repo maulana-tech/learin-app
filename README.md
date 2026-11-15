@@ -75,6 +75,51 @@ Details for each: [The categories, concretely](#the-categories-concretely).
 Without a model, LEARIS still uploads, previews, writes and checks quotes; agent runs say plainly that no model
 is connected. Nothing pretends.
 
+## See it in the app
+
+Captured on the live site ([learis.utdi.me](https://learis.utdi.me)) on 15 November 2026, using a fresh account
+and the four-course demo pack in [`docs/demo-files`](docs/demo-files). The model was DeepSeek V3.2 on Amazon
+Bedrock. Nothing was staged: the reach numbers come from really opening the shared link and signing up from a
+phone-sized browser.
+
+<table>
+<tr>
+<td width="50%"><b>Files</b>: a semester in four courses, 14 files<br/><img src="docs/screenshots/files.webp" alt="Files: four courses, fourteen files, grouped by course" /></td>
+<td width="50%"><b>Assistant</b>: one agent per course, every file read shown live<br/><img src="docs/screenshots/assistant-agents.webp" alt="Assistant: Writer agents for each course reading files in parallel" /></td>
+</tr>
+<tr>
+<td><b>Page</b>: every claim numbered, each source an exact quote<br/><img src="public/landing/page.webp" alt="A page with numbered claims and quoted sources on the right" /></td>
+<td><b>Tasks</b>: every deadline from the briefs, with its date<br/><img src="docs/screenshots/tasks.webp" alt="Tasks board with deadlines pulled from course files" /></td>
+</tr>
+<tr>
+<td><b>Share</b>: a public link, with WhatsApp, Telegram, X and LinkedIn<br/><img src="docs/screenshots/share-dialog.webp" alt="Share dialog with the public link and share targets" /></td>
+<td><b>Public page</b>: readable without an account, quotes visible<br/><img src="docs/screenshots/public-page.webp" alt="The public page as a visitor without an account sees it" /></td>
+</tr>
+<tr>
+<td><b>Your reach</b>: link opens and friends who joined, from our own database<br/><img src="docs/screenshots/reach.webp" alt="Your reach: 1 public link, 2 opens, 1 friend joined" /></td>
+<td><b>Studio</b>: up to four agents side by side, each with its own model<br/><img src="docs/screenshots/studio.webp" alt="Studio with an Orchestrator panel" /></td>
+</tr>
+<tr>
+<td><b>Agents</b>: the core team and the Academic pack<br/><img src="docs/screenshots/agents.webp" alt="Agents: Reader, Writer, Planner, Reviewer, Tutor, Practice Coach, Claim Auditor, Review Panel" /></td>
+<td><b>Gallery</b>: community agents, installed in one click<br/><img src="docs/screenshots/gallery.webp" alt="Community gallery of shareable agents" /></td>
+</tr>
+<tr>
+<td><b>Group</b>: invite with a link, split work by free hours<br/><img src="docs/screenshots/group.webp" alt="Group: start a group and what it gives you" /></td>
+<td><b>Skill Gap Radar</b>: proven skills, the gap to a role, a four-week plan<br/><img src="docs/screenshots/skill-gap.webp" alt="Skill Gap Radar overview" /></td>
+</tr>
+<tr>
+<td colspan="2"><b>AI &amp; privacy</b>: bring your own model, consent before documents reach a model, delete everything<br/><img src="docs/screenshots/settings.webp" alt="AI and privacy settings" width="50%" /></td>
+</tr>
+</table>
+
+**On a phone, from a WhatsApp link:** the shared page, then sign-up with the sharer credited (`?ref=`).
+
+<p>
+  <img src="docs/screenshots/public-page-phone.webp" alt="Shared page on a phone" width="260" />
+  &nbsp;
+  <img src="docs/screenshots/signup-phone.webp" alt="Sign-up on a phone, arriving from the shared link" width="260" />
+</p>
+
 ## The team
 
 The Orchestrator (`agents/workspace.py`) reads the workspace and delegates one level deep, in parallel where it

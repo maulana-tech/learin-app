@@ -1,0 +1,86 @@
+# LEARIS: AI study work you can check, and share
+
+**Live:** https://learis.utdi.me
+
+![LEARIS: a page written by agents, every claim numbered, every source an exact quote](https://learis.utdi.me/landing/page.webp)
+
+## The problem
+
+Students everywhere use AI to study, but they cannot trust what it writes. ChatGPT, Gemini and Claude answer fluently, and none of them can show which line of the course material a sentence came from. So students either copy unchecked text into their work, or spend hours checking it by hand.
+
+Their material is also scattered. A semester means several courses, each with PDFs, slides, a syllabus and assignment briefs, and the deadlines are buried inside those files.
+
+And when a student makes something useful, like a good summary, it travels as a screenshot in a group chat. The proof is lost and the tool that made it is invisible.
+
+## How it works
+
+LEARIS is an AI study workspace built on one rule: **agents write, tools check, people share what is proven.**
+
+1. **Upload the semester.** Drop in PDFs, slides, syllabi and briefs, labelled by course. PDFs are read in the browser and only their text is sent.
+2. **Ask once, in your own words.** An Orchestrator agent splits the request and sends one agent per course, in parallel. Every file each agent opens and every tool it calls is shown live.
+3. **Every claim cites an exact quote.** Pages cite their files as [n], and each [n] must be an exact quote from the file. The check runs in code, not on the model's word: a quote that is not word for word in the file is refused before the page is saved.
+4. **Check claims.** The Claim Auditor goes one step further and asks whether this quote actually supports this sentence. It marks each sentence supported, partial or unsupported, and narrows weak claims to what the source proves.
+5. **Share the page, not a screenshot.** Any page becomes a public link that anyone can read without an account, with every quote visible. It is a demo and a sign-up link in one, and sign-ups through the link are credited to the student who shared it.
+
+![Agents working in parallel, one per course](https://learis.utdi.me/landing/chat.webp)
+
+## Key features
+
+- **Files:** a whole semester at once (PDF, TXT, Markdown, public GitHub repos), grouped by course, with a preview that opens each file at the quoted line.
+- **Assistant:** a multi-agent chat (Orchestrator, Reader, Writer, Planner, Reviewer). It accepts voice input, file attachments and model choice. The Orchestrator's closing summary is fact-checked against what was actually created.
+- **Pages:** summaries, reports and study guides with sources. They offer Review sources, Check claims (the Claim Auditor) and Export to Word in 14 campus and journal formats.
+- **Tasks:** every deadline found in the files, added only with the date the file states. Week numbers are never turned into invented dates. Tasks can be given to an agent with Run.
+- **Academic pack:** a Tutor that measures what you know before teaching, a Practice Coach that gives hints rather than answers, the Claim Auditor, a Review Panel (methods reviewer, devil's advocate, editor) and a Report Formatter.
+- **Studio:** up to four agents side by side, each with its own model, for comparing answers.
+- **Agents and Gallery:** build your own agent with instructions and chosen tools, share it to the community gallery, and install others' agents in one click. Files never travel with an agent.
+- **Group:** invite friends with a link and share files, pages and agents. The Planner splits work by each member's real free hours, so nobody is overloaded silently.
+- **Skill Gap Radar:** proves skills from syllabi, transcripts and projects, measures the gap to a target role, and plans four weeks of work.
+- **AI and privacy:** bring your own model (OpenAI, Anthropic, Gemini, OpenRouter or a local model, with the key kept in the browser). Consent is asked before any document reaches a model, and one click deletes the account and all its data.
+
+![Share dialog: a public link with WhatsApp, Telegram, X and LinkedIn](https://learis.utdi.me/landing/shared.webp)
+
+## How it spreads (the hackathon theme)
+
+LEARIS is built so that every user brings in the next one:
+
+- **The output is the ad.** A student shares a page to a class chat. Classmates open it on their phones without an account, see that every claim has its quote, and tap "Create a free account".
+- **Credited referrals.** The link carries the sharer's token, so the new sign-up is credited to them. Students see their own numbers on **Your reach**: links made, opens and friends joined. These are counted in our own database, with no tracking scripts.
+- **Agents spread too.** A custom agent shared to the gallery becomes an install link.
+- **Groups pull people in.** A study group invite brings the whole group into one workspace.
+- **Zero acquisition cost, low serving cost.** Every shared page is a free demo, and bring-your-own-model keeps the AI cost of a free user near zero, so growth does not burn money.
+
+The loop is instrumented from day one (opens per link, sign-ups per link, sign-ups per sharing student), so real-world growth can be measured for the post-hackathon category.
+
+## Business and world impact
+
+- **Business:** a free tier on the user's own model; Pro with a built-in model and no key to set up; and campus licences with the campus's own report format. Later customers include universities, lecturers, tutoring programmes, bootcamps and online courses that need AI-assisted work they can check.
+- **World impact:** trust in AI-written study work, learning instead of copying (the Tutor and Practice Coach teach and hint rather than answer), fair group work, and access from any phone browser with free or local models.
+- **Global from day one:** a web app, agents that answer in the user's language, and bring-your-own AI.
+
+## Tech stack
+
+- **Web:** Next.js 16 (App Router, server components, `proxy.ts`), React 19, TypeScript, Tailwind CSS v4, Radix UI / shadcn, react-markdown, pdf.js (PDF text extracted in the browser), Lenis and GSAP ScrollTrigger (landing page motion), dynamic Open Graph images for shared pages
+- **Agent service:** Python standard library only (no framework). It covers the multi-agent orchestration, tool calling, quote verification, deadline extraction, Word export and growth tracking. Data is stored in SQLite.
+- **Models:** Amazon Bedrock (DeepSeek V3.2) as the built-in model, plus bring your own: OpenAI, Anthropic, Google Gemini, OpenRouter, or any OpenAI-compatible local model
+- **Infrastructure:** Docker Compose on AWS EC2, nginx with rate limits, Let's Encrypt TLS, Cloudflare DNS, GitHub Actions CI/CD (lint, typecheck, unit tests, build, 23 agent self-checks, deploy) and GitHub Container Registry
+- **Separate hosting:** the web app runs at learis.utdi.me and the agent API at api-learis.utdi.me
+
+## What we verified
+
+- 23 offline self-checks for the agent service (engines, tools, swarm, academic pack, growth loop, workers, MCP, API)
+- End-to-end runs on a real model with a semester of four courses: deadlines found with exact dates and none invented; a prompt injection hidden in an uploaded file ignored; another user's workspace refused everywhere
+- The share loop tested live: a link opened without an account, sign-up through the link credited, the link turned off returns 404, and nothing private appears in the public view
+
+## Hackathon requirements
+
+- **Event:** HackOnVibe November 2026, "Build a Product That Spreads"
+- **Categories:** Business Success, World Impact, and the real-world success category judged two months later
+- **Live product:** https://learis.utdi.me
+- **Demo video:** [YouTube link]
+- **Try it in five minutes:**
+  1. Create an account.
+  2. Upload a few course files.
+  3. Ask: *"Summarise each course in Files, one page per course, and put every deadline on the board."*
+  4. Open a page and click any [n].
+  5. Share it, open the link in a private window, and sign up from it.
+  6. Watch the sign-up appear on **Pages → Your reach**.
