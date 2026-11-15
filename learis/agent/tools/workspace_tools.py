@@ -212,6 +212,7 @@ def create_task(ctx: Ctx, title: str, description: str = "", assignee_type: Opti
                 estimate_hours: Optional[float] = None, page_id: Optional[str] = None) -> Dict[str, Any]:
     if assignee_type == "user" and assignee_id:
         _check_load(ctx, assignee_id, float(estimate_hours or 0))
+    description = description.replace("\\n", "\n")   # some models send an escaped newline as text
     t = _call(space.create_task, ctx.user_id, _ws(ctx), title, _by(ctx), description, assignee_type,
               assignee_id, due_date, estimate_hours, page_id, ctx.run_id)
     _artifact(ctx, "task", t["id"], t["title"])

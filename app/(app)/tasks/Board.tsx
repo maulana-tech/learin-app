@@ -82,7 +82,7 @@ export function Board({ tasks, members, agents }: { tasks: Task[]; members: Memb
           void act(() => call("tasks", { title, ...split(assignee), estimate_hours: est || null, due_date: due || null }));
           setTitle(""); setEst(""); setDue("");
         }}>
-        <Field label="New task"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tulis bab 2 laporan" /></Field>
+        <Field label="New task"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Write chapter 2 of the report" /></Field>
         <Field label="For"><Select value={assignee} onValueChange={setAssignee} options={people} ariaLabel="Assign to" /></Field>
         <Field label="Hours"><Input type="number" min={0} step={0.5} value={est} onChange={(e) => setEst(e.target.value)} /></Field>
         <Field label="Due"><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></Field>

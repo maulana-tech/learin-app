@@ -36,9 +36,9 @@ export function CreateGroup() {
         setBusy(false);
       }
     }}>
-      <Field label="Group name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Kelompok Basis Data · Relawan Mengajar" required /></Field>
+      <Field label="Group name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Database study group · Teaching volunteers" required /></Field>
       <Field label="What it is for" optional hint="Shown to people you invite, and at the top of activity reports.">
-        <TextArea rows={3} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Tugas besar sistem perpustakaan, 4 orang" />
+        <TextArea rows={3} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Library database group project, 4 people" />
       </Field>
       {error && <p className="text-bad flex items-center gap-2 text-[13px]"><Dot tone="bad" />{error}</p>}
       <Button type="submit" disabled={busy}><Plus className="size-4" /> {busy ? "Creating…" : "Create group"}</Button>

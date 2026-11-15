@@ -69,7 +69,7 @@ export function Upload({ courses }: { courses: string[] }) {
               e.preventDefault();
               if (newCourse.trim()) { setCourse(newCourse.trim()); setNewCourse(""); setAdding(false); }
             }}>
-              <Input autoFocus value={newCourse} onChange={(e) => setNewCourse(e.target.value)} placeholder="e.g. Basis Data" className="h-8 w-40" />
+              <Input autoFocus value={newCourse} onChange={(e) => setNewCourse(e.target.value)} placeholder="e.g. Database Systems" className="h-8 w-40" />
               <Button size="sm" type="submit">Add</Button>
             </form>
           ) : (
